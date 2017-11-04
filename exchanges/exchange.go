@@ -48,16 +48,20 @@ const (
 	OrderStatusActive  OrderStatus = "active"
 	OrderStatusFilled  OrderStatus = "filled"
 	OrderStatusAborted OrderStatus = "aborted"
+	OrderStatusUnknown OrderStatus = "unknown"
 )
 
 type Order struct {
-	CurrencyPair string
-	Type         OrderType
-	Amount       float64
-	Rate         float64
-	CreatedAt    float64 // timestamp
-	Status       OrderStatus
-	OrderID      uint // ID of order this exchange order was generated for
+	CurrencyPair    string
+	Type            OrderType
+	Amount          float64 //original amount requested
+	FilledAmount    float64
+	RemainingAmount float64
+	Rate            float64
+	CreatedAt       int64 // timestamp
+	//	LastUpdate      int64 // timestamp
+	Status  OrderStatus
+	OrderID string // ID of order this exchange order was generated for
 }
 
 // Base stores the individual exchange information

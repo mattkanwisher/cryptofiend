@@ -316,7 +316,38 @@ func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
 }
 
 func (g *Gemini) GetOrders() ([]exchange.Order, error) {
-	panic("unimplemented")
+	ret := []exchange.Order{}
+	orders, err := g.getOrders()
+	if err != nil {
+		return ret, err
+	}
+	for _, order := range orders {
+		retOrder := exchange.Order{}
+		retOrder.OrderID = strconv.FormatInt(order.OrderID, 10)
+
+		if order.IsLive == true {
+			retOrder.Status = exchange.OrderStatusActive
+		} else if order.IsCancelled == true {
+			retOrder.Status = exchange.OrderStatusAborted
+		} else {
+			retOrder.Status = exchange.OrderStatusUnknown
+		}
+		if err != nil {
+			continue
+		}
+		retOrder.FilledAmount = order.ExecutedAmount
+		retOrder.RemainingAmount = order.RemainingAmount
+		retOrder.Rate = order.Price
+		retOrder.CreatedAt = order.Timestamp
+		if order.Side == "buy" {
+			retOrder.Type = exchange.OrderTypeBuy
+		} else if order.Side == "sell" {
+			retOrder.Type = exchange.OrderTypeSell
+		}
+
+		ret = append(ret, retOrder)
+	}
+	return ret, nil
 }
 
 // GetOrders returns active orders in the market
