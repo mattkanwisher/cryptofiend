@@ -5,13 +5,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/thrasher-/gocryptotrader/currency"
-	"github.com/thrasher-/gocryptotrader/currency/pair"
-	"github.com/thrasher-/gocryptotrader/currency/symbol"
-	exchange "github.com/thrasher-/gocryptotrader/exchanges"
-	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
-	"github.com/thrasher-/gocryptotrader/exchanges/stats"
-	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
+	"github.com/mattkanwisher/cryptofiend/currency"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
+	"github.com/mattkanwisher/cryptofiend/currency/symbol"
+	exchange "github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
+	"github.com/mattkanwisher/cryptofiend/exchanges/stats"
+	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
 func printCurrencyFormat(price float64) string {

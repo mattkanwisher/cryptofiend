@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
-	"github.com/thrasher-/gocryptotrader/common"
-	"github.com/thrasher-/gocryptotrader/config"
-	"github.com/thrasher-/gocryptotrader/exchanges"
-	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
-	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
+	"github.com/mattkanwisher/cryptofiend/common"
+	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
+	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/thrasher-/gocryptotrader/common"
+	"github.com/mattkanwisher/cryptofiend/common"
 )
 
 func TestPromptForConfigEncryption(t *testing.T) {

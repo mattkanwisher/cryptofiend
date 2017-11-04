@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/thrasher-/gocryptotrader/common"
+	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/thrasher-/socketio"
 )
 

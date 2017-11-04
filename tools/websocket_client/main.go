@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-	"github.com/thrasher-/gocryptotrader/common"
-	"github.com/thrasher-/gocryptotrader/config"
+	"github.com/mattkanwisher/cryptofiend/common"
+	"github.com/mattkanwisher/cryptofiend/config"
 )
 
 // Vars for the websocket client

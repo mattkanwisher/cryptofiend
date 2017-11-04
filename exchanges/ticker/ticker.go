@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/thrasher-/gocryptotrader/common"
-	"github.com/thrasher-/gocryptotrader/currency/pair"
+	"github.com/mattkanwisher/cryptofiend/common"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 )
 
 // Const values for the ticker package

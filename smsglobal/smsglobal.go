@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/thrasher-/gocryptotrader/common"
+	"github.com/mattkanwisher/cryptofiend/common"
 )
 
 const (

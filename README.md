@@ -1,10 +1,10 @@
 # Cryptocurrency trading bot written in Golang
 
-[![Build Status](https://travis-ci.org/thrasher-/gocryptotrader.svg?branch=master)](https://travis-ci.org/thrasher-/gocryptotrader)
-[![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/thrasher-/gocryptotrader/blob/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/thrasher-/gocryptotrader?status.svg)](https://godoc.org/github.com/thrasher-/gocryptotrader)
-[![Coverage Status](http://codecov.io/github/thrasher-/gocryptotrader/coverage.svg?branch=master)](http://codecov.io/github/thrasher-/gocryptotrader?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/thrasher-/gocryptotrader)](https://goreportcard.com/report/github.com/thrasher-/gocryptotrader)
+[![Build Status](https://travis-ci.org/mattkanwisher/cryptofiend.svg?branch=master)](https://travis-ci.org/mattkanwisher/cryptofiend)
+[![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/mattkanwisher/cryptofiend/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/mattkanwisher/cryptofiend?status.svg)](https://godoc.org/github.com/mattkanwisher/cryptofiend)
+[![Coverage Status](http://codecov.io/github/mattkanwisher/cryptofiend/coverage.svg?branch=master)](http://codecov.io/github/mattkanwisher/cryptofiend?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mattkanwisher/cryptofiend)](https://goreportcard.com/report/github.com/mattkanwisher/cryptofiend)
 
 A cryptocurrency trading bot supporting multiple exchanges written in Golang.
 
@@ -68,7 +68,7 @@ When submitting a PR, please abide by our coding guidelines:
 
 + Code must adhere to the official Go [formatting](https://golang.org/doc/effective_go.html#formatting) guidelines (i.e. uses [gofmt](https://golang.org/cmd/gofmt/)).
 + Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
-+ Code must adhere to our [coding style](https://github.com/thrasher-/gocryptotrader/blob/master/doc/coding_style.md).
++ Code must adhere to our [coding style](https://github.com/mattkanwisher/cryptofiend/blob/master/doc/coding_style.md).
 + Pull requests need to be based on and opened against the `master` branch.
 
 ## Compiling instructions
@@ -76,10 +76,10 @@ When submitting a PR, please abide by our coding guidelines:
 Download and install Go from [Go Downloads](https://golang.org/dl/)
 
 ```
-go get github.com/thrasher-/gocryptotrader
-cd $GOPATH/src/github.com/thrasher-/gocryptotrader
+go get github.com/mattkanwisher/cryptofiend
+cd $GOPATH/src/github.com/mattkanwisher/cryptofiend
 go install
-cp $GOPATH/src/github.com/thrasher-/gocryptotrader/config_example.dat $GOPATH/bin/config.dat
+cp $GOPATH/src/github.com/mattkanwisher/cryptofiend/config_example.dat $GOPATH/bin/config.dat
 ```
 
 Make any neccessary changes to the config file.

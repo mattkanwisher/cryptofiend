@@ -3,7 +3,7 @@ package alphapoint
 import (
 	"testing"
 
-	"github.com/thrasher-/gocryptotrader/common"
+	"github.com/mattkanwisher/cryptofiend/common"
 )
 
 const (

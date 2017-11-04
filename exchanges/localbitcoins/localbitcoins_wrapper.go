@@ -3,10 +3,10 @@ package localbitcoins
 import (
 	"log"
 
-	"github.com/thrasher-/gocryptotrader/currency/pair"
-	"github.com/thrasher-/gocryptotrader/exchanges"
-	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
-	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
+	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
+	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
 // Start starts the LocalBitcoins go routine

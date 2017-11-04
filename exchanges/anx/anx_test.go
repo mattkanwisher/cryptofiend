@@ -3,7 +3,7 @@ package anx
 import (
 	"testing"
 
-	"github.com/thrasher-/gocryptotrader/config"
+	"github.com/mattkanwisher/cryptofiend/config"
 )
 
 func TestSetDefaults(t *testing.T) {

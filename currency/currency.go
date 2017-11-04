@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thrasher-/gocryptotrader/common"
+	"github.com/mattkanwisher/cryptofiend/common"
 )
 
 // Rate holds the current exchange rates for the currency pair.
