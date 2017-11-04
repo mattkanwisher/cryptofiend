@@ -3,25 +3,9 @@
 A set of opionated libraries to make it easy to build your own crypto bots in Golang. Originally forked from thrasher-/gocryptotrader. This is a permanent fork and rewrite, to support better code reuse for algorithmic traders. Also it fixes a lot of idiomatic go issues, and allows more accurate data types like Decimal instead of floats, so the numbers are more precise.
 
 
-#Below
-Below is old docs, going to be updated later
-
-
-# Cryptocurrency trading bot written in Golang
-
-[![Build Status](https://travis-ci.org/mattkanwisher/cryptofiend.svg?branch=master)](https://travis-ci.org/mattkanwisher/cryptofiend)
 [![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/mattkanwisher/cryptofiend/blob/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/mattkanwisher/cryptofiend?status.svg)](https://godoc.org/github.com/mattkanwisher/cryptofiend)
-[![Coverage Status](http://codecov.io/github/mattkanwisher/cryptofiend/coverage.svg?branch=master)](http://codecov.io/github/mattkanwisher/cryptofiend?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mattkanwisher/cryptofiend)](https://goreportcard.com/report/github.com/mattkanwisher/cryptofiend)
 
-A cryptocurrency trading bot supporting multiple exchanges written in Golang.
-
-**Please note that this bot is under development and is not ready for production!**
-
-## Community
-
-Join our slack to discuss all things related to GoCryptoTrader! [GoCryptoTrader Slack](https://gocryptotrader.herokuapp.com/)
 
 ## Exchange Support Table
 
@@ -63,7 +47,6 @@ We are aiming to support the top 20 highest volume exchanges based off the [Coin
 + Packages for handling currency pairs, ticker/orderbook fetching and currency conversion.
 + Portfolio management tool; fetches balances from supported exchanges and allows for custom address tracking.
 + Basic event trigger system.
-+ WebGUI.
 
 ## Planned Features
 
@@ -94,10 +77,6 @@ cp $GOPATH/src/github.com/mattkanwisher/cryptofiend/config_example.dat $GOPATH/b
 Make any neccessary changes to the config file.
 Run the application!
 
-## Donations
+## Consulting
 
-If this framework helped you in any way, or you would like to support the developers working on it, please donate Bitcoin to: 1F5zVDgNjorJ51oGebSvNCrSAHpwGkUdDB
-
-## Binaries
-
-Binaries will be published once the codebase reaches a stable condition.
+If you are interested in a custom crypto trading bot please contact me at hyper[at]hyperworks.nu 
