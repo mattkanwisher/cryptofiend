@@ -1,0 +1,8 @@
+config.json
+config.dat
+node_modules
+lib
+.vscode
+
+testdata/dump
+testdata/writefiletest

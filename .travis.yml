@@ -1,0 +1,21 @@
+language: go
+
+go:
+ - 1.8.x
+ #- master
+
+before_install:
+ - go get -t -v ./...
+
+script:
+ - ./testdata/test.sh
+
+install:
+ - go get github.com/gorilla/websocket
+ - go get github.com/toorop/go-pusher
+ - go get github.com/thrasher-/socketio
+ - go get github.com/beatgammit/turnpike
+ - go get github.com/gorilla/mux
+
+after_success:
+ - bash <(curl -s https://codecov.io/bash)
