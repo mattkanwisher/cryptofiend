@@ -1,3 +1,12 @@
+# Crypto Fiend
+
+A set of opionated libraries to make it easy to build your own crypto bots in Golang. Originally forked from thrasher-/gocryptotrader. This is a permanent fork and rewrite, to support better code reuse for algorithmic traders. Also it fixes a lot of idiomatic go issues, and allows more accurate data types like Decimal instead of floats, so the numbers are more precise.
+
+
+#Below
+Below is old docs, going to be updated later
+
+
 # Cryptocurrency trading bot written in Golang
 
 [![Build Status](https://travis-ci.org/mattkanwisher/cryptofiend.svg?branch=master)](https://travis-ci.org/mattkanwisher/cryptofiend)
