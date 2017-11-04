@@ -107,7 +107,7 @@ type IBotExchange interface {
 //Extended bot itterface for new methods
 type IBotExchangeEx interface {
 	IBotExchange
-	NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error)
+	NewOrder(symbol string, amount, price float64, side, orderType string) (string, error)
 	CancelOrder(OrderID string) error
 	GetOrder(orderID string) (Order, error)
 	GetOrders() ([]Order, error)

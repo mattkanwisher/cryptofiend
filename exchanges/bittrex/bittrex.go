@@ -227,7 +227,7 @@ func (b *Bittrex) GetOrder(orderID string) (exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (b *Bittrex) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+func (b *Bittrex) NewOrder(symbol string, amount, price float64, side, orderType string) (string, error) {
 	panic("not implemented")
 }
 

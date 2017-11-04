@@ -242,9 +242,9 @@ func (g *Gemini) isCorrectSession(role string) error {
 
 // NewOrder Only limit orders are supported through the API at present.
 // returns order ID if successful
-func (g *Gemini) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+func (g *Gemini) NewOrder(symbol string, amount, price float64, side, orderType string) (string, error) {
 	if err := g.isCorrectSession(geminiRoleTrader); err != nil {
-		return 0, err
+		return "", err
 	}
 
 	request := make(map[string]interface{})
@@ -257,9 +257,9 @@ func (g *Gemini) NewOrder(symbol string, amount, price float64, side, orderType 
 	response := Order{}
 	err := g.SendAuthenticatedHTTPRequest("POST", geminiOrderNew, request, &response)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return response.OrderID, nil
+	return strconv.FormatInt(response.OrderID, 10), nil
 }
 
 // CancelOrder will cancel an order. If the order is already canceled, the
