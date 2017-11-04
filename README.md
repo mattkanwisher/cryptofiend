@@ -48,9 +48,6 @@ We are aiming to support the top 20 highest volume exchanges based off the [Coin
 + Portfolio management tool; fetches balances from supported exchanges and allows for custom address tracking.
 + Basic event trigger system.
 
-## Planned Features
-
-Planned features can be found on our [community Trello page](https://trello.com/b/ZAhMhpOy/gocryptotrader).
 
 ## Contribution
 
