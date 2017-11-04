@@ -12,6 +12,7 @@ import (
 	"github.com/thrasher-/gocryptotrader/common"
 	"github.com/thrasher-/gocryptotrader/config"
 	"github.com/thrasher-/gocryptotrader/exchanges"
+	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
 	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
 )
 
@@ -109,6 +110,8 @@ func (o *OKCoin) SetDefaults() {
 		o.WebsocketURL = OKCOIN_WEBSOCKET_URL_CHINA
 		o.setCurrencyPairFormats()
 	}
+
+	o.Orderbooks = orderbook.Init()
 }
 
 func (o *OKCoin) Setup(exch config.ExchangeConfig) {
@@ -439,7 +442,26 @@ func (o *OKCoin) BatchTrade(orderData string, symbol, orderType string) (OKCoinB
 	return result, nil
 }
 
-func (o *OKCoin) CancelOrder(orderID []int64, symbol string) (OKCoinCancelOrderResponse, error) {
+func (o *OKCoin) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (o *OKCoin) CancelOrder(orderCompoundID string) error {
+	res := strings.Split(orderCompoundID, "_")
+	if len(res) != 2 {
+		return errors.New("invalid orderid")
+	}
+
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(res[0], 10, 64); err == nil {
+		return err
+	}
+	_, err = o.cancelOrder([]int64{orderID}, res[1])
+	return err
+}
+
+func (o *OKCoin) cancelOrder(orderID []int64, symbol string) (OKCoinCancelOrderResponse, error) {
 	v := url.Values{}
 	orders := []string{}
 	orderStr := ""

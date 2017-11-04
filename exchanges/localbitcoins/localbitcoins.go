@@ -12,6 +12,7 @@ import (
 	"github.com/thrasher-/gocryptotrader/common"
 	"github.com/thrasher-/gocryptotrader/config"
 	"github.com/thrasher-/gocryptotrader/exchanges"
+	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
 	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
 )
 
@@ -44,6 +45,7 @@ func (l *LocalBitcoins) SetDefaults() {
 	l.ConfigCurrencyPairFormat.Delimiter = ""
 	l.ConfigCurrencyPairFormat.Uppercase = true
 	l.AssetTypes = []string{ticker.Spot}
+	l.Orderbooks = orderbook.Init()
 }
 
 func (l *LocalBitcoins) Setup(exch config.ExchangeConfig) {
@@ -99,6 +101,14 @@ func (l *LocalBitcoins) GetTrades(currency string, values url.Values) ([]LocalBi
 	}
 
 	return result, nil
+}
+
+func (l *LocalBitcoins) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (l *LocalBitcoins) CancelOrder(orderstr string) error {
+	panic("unimplemented")
 }
 
 func (l *LocalBitcoins) GetOrderbook(currency string) (LocalBitcoinsOrderbook, error) {

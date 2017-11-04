@@ -303,9 +303,13 @@ func (b *Bitfinex) Withdrawal(withdrawType, wallet, address string, amount float
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexWithdrawal, request, &response)
 }
 
+func (b *Bitfinex) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
 // NewOrder submits a new order and returns a order information
 // Major Upgrade needed on this function to include all query params
-func (b *Bitfinex) NewOrder(currencyPair string, amount float64, price float64, buy bool, Type string, hidden bool) (Order, error) {
+func (b *Bitfinex) NewOrder2(currencyPair string, amount float64, price float64, buy bool, Type string, hidden bool) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
 	request["symbol"] = currencyPair
@@ -335,8 +339,18 @@ func (b *Bitfinex) NewOrderMulti(orders []PlaceOrder) (OrderMultiResponse, error
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderNewMulti, request, &response)
 }
 
+func (b *Bitfinex) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	_, err = b.cancelOrder(orderID)
+	return err
+}
+
 // CancelOrder cancels a single order
-func (b *Bitfinex) CancelOrder(OrderID int64) (Order, error) {
+func (b *Bitfinex) cancelOrder(OrderID int64) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
 	request["order_id"] = OrderID

@@ -14,7 +14,6 @@ import (
 	"github.com/thrasher-/gocryptotrader/config"
 	"github.com/thrasher-/gocryptotrader/currency"
 	"github.com/thrasher-/gocryptotrader/exchanges"
-	"github.com/thrasher-/gocryptotrader/exchanges/anx"
 	"github.com/thrasher-/gocryptotrader/exchanges/bitfinex"
 	"github.com/thrasher-/gocryptotrader/exchanges/bitstamp"
 	"github.com/thrasher-/gocryptotrader/exchanges/bittrex"
@@ -39,7 +38,6 @@ import (
 
 // ExchangeMain contains all the necessary exchange packages
 type ExchangeMain struct {
-	anx           anx.ANX
 	btcc          btcc.BTCC
 	bitstamp      bitstamp.Bitstamp
 	bitfinex      bitfinex.Bitfinex
@@ -138,7 +136,6 @@ func main() {
 	log.Println("Bot Exchange support:")
 
 	bot.exchanges = []exchange.IBotExchange{
-		new(anx.ANX),
 		new(kraken.Kraken),
 		new(btcc.BTCC),
 		new(bitstamp.Bitstamp),

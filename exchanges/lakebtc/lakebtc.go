@@ -230,7 +230,20 @@ func (l *LakeBTC) GetOrders(orders []int64) ([]LakeBTCOrders, error) {
 	return resp, nil
 }
 
-func (l *LakeBTC) CancelOrder(orderID int64) error {
+func (l *LakeBTC) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (l *LakeBTC) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	return l.cancelOrder(orderID)
+}
+
+func (l *LakeBTC) cancelOrder(orderID int64) error {
 	type Response struct {
 		Result bool `json:"Result"`
 	}

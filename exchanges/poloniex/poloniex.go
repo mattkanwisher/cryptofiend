@@ -12,6 +12,7 @@ import (
 	"github.com/thrasher-/gocryptotrader/common"
 	"github.com/thrasher-/gocryptotrader/config"
 	"github.com/thrasher-/gocryptotrader/exchanges"
+	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
 	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
 )
 
@@ -64,6 +65,7 @@ func (p *Poloniex) SetDefaults() {
 	p.ConfigCurrencyPairFormat.Delimiter = "_"
 	p.ConfigCurrencyPairFormat.Uppercase = true
 	p.AssetTypes = []string{ticker.Spot}
+	p.Orderbooks = orderbook.Init()
 }
 
 func (p *Poloniex) Setup(exch config.ExchangeConfig) {
@@ -437,7 +439,29 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 	return result, nil
 }
 
-func (p *Poloniex) CancelOrder(orderID int64) (bool, error) {
+func (p *Poloniex) GetOrder(orderID string) (exchange.Order, error) {
+	panic("unimplemented")
+}
+
+func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
+	panic("unimplemented")
+}
+
+func (p *Poloniex) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (p *Poloniex) CancelOrder(orderstr string) error {
+	var err error
+	var orderID int64
+	if orderID, err = strconv.ParseInt(orderstr, 10, 64); err == nil {
+		return err
+	}
+	_, err = p.cancelOrder(orderID)
+	return err
+}
+
+func (p *Poloniex) cancelOrder(orderID int64) (bool, error) {
 	result := PoloniexGenericResponse{}
 	values := url.Values{}
 	values.Set("orderNumber", strconv.FormatInt(orderID, 10))

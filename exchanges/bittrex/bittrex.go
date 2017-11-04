@@ -218,9 +218,25 @@ func (b *Bittrex) GetOpenOrders(currencyPair string) ([]Order, error) {
 
 	return orders, b.HTTPRequest(path, true, values, &orders)
 }
+func (b *Bittrex) CancelOrder(uuid string) error {
+	_, err := b.cancelOrder(uuid)
+	return err
+}
+
+func (b *Bittrex) GetOrder(orderID string) (exchange.Order, error) {
+	panic("unimplemented")
+}
+
+func (b *Bittrex) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (b *Bittrex) GetOrders() ([]exchange.Order, error) {
+	panic("unimplemented")
+}
 
 // CancelOrder is used to cancel a buy or sell order.
-func (b *Bittrex) CancelOrder(uuid string) ([]Balance, error) {
+func (b *Bittrex) cancelOrder(uuid string) ([]Balance, error) {
 	var balances []Balance
 	values := url.Values{}
 	values.Set("uuid", uuid)
@@ -274,7 +290,7 @@ func (b *Bittrex) Withdraw(currency, paymentID, address string, quantity float64
 }
 
 // GetOrder is used to retrieve a single order by UUID.
-func (b *Bittrex) GetOrder(uuid string) (Order, error) {
+func (b *Bittrex) getOrder(uuid string) (Order, error) {
 	var order Order
 	values := url.Values{}
 	values.Set("uuid", uuid)

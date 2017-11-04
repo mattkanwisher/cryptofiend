@@ -35,6 +35,31 @@ type AccountCurrencyInfo struct {
 	Hold         float64
 }
 
+type OrderType string
+
+const (
+	OrderTypeBuy  OrderType = "buy"
+	OrderTypeSell OrderType = "sell"
+)
+
+type OrderStatus string
+
+const (
+	OrderStatusActive  OrderStatus = "active"
+	OrderStatusFilled  OrderStatus = "filled"
+	OrderStatusAborted OrderStatus = "aborted"
+)
+
+type Order struct {
+	CurrencyPair string
+	Type         OrderType
+	Amount       float64
+	Rate         float64
+	CreatedAt    float64 // timestamp
+	Status       OrderStatus
+	OrderID      uint // ID of order this exchange order was generated for
+}
+
 // Base stores the individual exchange information
 type Base struct {
 	Name                        string
@@ -54,6 +79,7 @@ type Base struct {
 	APIUrl                      string
 	RequestCurrencyPairFormat   config.CurrencyPairFormatConfig
 	ConfigCurrencyPairFormat    config.CurrencyPairFormatConfig
+	Orderbooks                  orderbook.Orderbooks
 }
 
 // IBotExchange enforces standard functions for all exchanges supported in
@@ -67,10 +93,20 @@ type IBotExchange interface {
 	GetTickerPrice(currency pair.CurrencyPair, assetType string) (ticker.Price, error)
 	UpdateTicker(currency pair.CurrencyPair, assetType string) (ticker.Price, error)
 	GetOrderbookEx(currency pair.CurrencyPair, assetType string) (orderbook.Base, error)
+	GetOrderbookSimple(currency pair.CurrencyPair, assetType string) (orderbook.Base, error)
 	UpdateOrderbook(currency pair.CurrencyPair, assetType string) (orderbook.Base, error)
 	GetEnabledCurrencies() []pair.CurrencyPair
 	GetExchangeAccountInfo() (AccountInfo, error)
 	GetAuthenticatedAPISupport() bool
+}
+
+//Extended bot itterface for new methods
+type IBotExchangeEx interface {
+	IBotExchange
+	NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error)
+	CancelOrder(OrderID string) error
+	GetOrder(orderID string) (Order, error)
+	GetOrders() ([]Order, error)
 }
 
 // SetAssetTypes checks the exchange asset types (whether it supports SPOT,
@@ -378,4 +414,9 @@ func (e *Base) UpdateAvailableCurrencies(exchangeProducts []string, force bool) 
 		return cfg.UpdateExchangeConfig(exch)
 	}
 	return nil
+}
+
+// GetOrderbookSimple returns orderbook base on the currency pair, does not update exchange
+func (e *Base) GetOrderbookSimple(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
+	return e.Orderbooks.GetOrderbook(e.GetName(), p, assetType)
 }

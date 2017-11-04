@@ -125,6 +125,9 @@ func (g *Gemini) Setup(exch config.ExchangeConfig) {
 		g.BaseCurrencies = common.SplitStrings(exch.BaseCurrencies, ",")
 		g.AvailablePairs = common.SplitStrings(exch.AvailablePairs, ",")
 		g.EnabledPairs = common.SplitStrings(exch.EnabledPairs, ",")
+		if exch.UseSandbox {
+			g.APIUrl = geminiSandboxAPIURL
+		}
 		err := g.SetCurrencyPairFormat()
 		if err != nil {
 			log.Fatal(err)
@@ -139,7 +142,7 @@ func (g *Gemini) Setup(exch config.ExchangeConfig) {
 // GetSymbols returns all available symbols for trading
 func (g *Gemini) GetSymbols() ([]string, error) {
 	symbols := []string{}
-	path := fmt.Sprintf("%s/v%s/%s", geminiAPIURL, geminiAPIVersion, geminiSymbols)
+	path := fmt.Sprintf("%s/v%s/%s", g.APIUrl, geminiAPIVersion, geminiSymbols)
 
 	return symbols, common.SendHTTPGetRequest(path, true, g.Verbose, &symbols)
 }
@@ -156,7 +159,7 @@ func (g *Gemini) GetTicker(currencyPair string) (Ticker, error) {
 
 	ticker := Ticker{}
 	resp := TickerResponse{}
-	path := fmt.Sprintf("%s/v%s/%s/%s", geminiAPIURL, geminiAPIVersion, geminiTicker, currencyPair)
+	path := fmt.Sprintf("%s/v%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiTicker, currencyPair)
 
 	err := common.SendHTTPGetRequest(path, true, g.Verbose, &resp)
 	if err != nil {
@@ -182,7 +185,7 @@ func (g *Gemini) GetTicker(currencyPair string) (Ticker, error) {
 // params - limit_bids or limit_asks [OPTIONAL] default 50, 0 returns all Values
 // Type is an integer ie "params.Set("limit_asks", 30)"
 func (g *Gemini) GetOrderbook(currencyPair string, params url.Values) (Orderbook, error) {
-	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s", geminiAPIURL, geminiAPIVersion, geminiOrderbook, currencyPair), params)
+	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiOrderbook, currencyPair), params)
 	orderbook := Orderbook{}
 
 	return orderbook, common.SendHTTPGetRequest(path, true, g.Verbose, &orderbook)
@@ -198,7 +201,7 @@ func (g *Gemini) GetOrderbook(currencyPair string, params url.Values) (Orderbook
 // include_breaks	boolean	Optional. Whether to display broken trades. False by
 // default. Can be '1' or 'true' to activate
 func (g *Gemini) GetTrades(currencyPair string, params url.Values) ([]Trade, error) {
-	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s", geminiAPIURL, geminiAPIVersion, geminiTrades, currencyPair), params)
+	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiTrades, currencyPair), params)
 	trades := []Trade{}
 
 	return trades, common.SendHTTPGetRequest(path, true, g.Verbose, &trades)
@@ -206,7 +209,7 @@ func (g *Gemini) GetTrades(currencyPair string, params url.Values) ([]Trade, err
 
 // GetAuction returns auction information
 func (g *Gemini) GetAuction(currencyPair string) (Auction, error) {
-	path := fmt.Sprintf("%s/v%s/%s/%s", geminiAPIURL, geminiAPIVersion, geminiAuction, currencyPair)
+	path := fmt.Sprintf("%s/v%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiAuction, currencyPair)
 	auction := Auction{}
 
 	return auction, common.SendHTTPGetRequest(path, true, g.Verbose, &auction)
@@ -224,7 +227,7 @@ func (g *Gemini) GetAuction(currencyPair string) (Auction, error) {
 //          include_indicative - [bool] Whether to include publication of
 // indicative prices and quantities.
 func (g *Gemini) GetAuctionHistory(currencyPair string, params url.Values) ([]AuctionHistory, error) {
-	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s/%s", geminiAPIURL, geminiAPIVersion, geminiAuction, currencyPair, geminiAuctionHistory), params)
+	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiAuction, currencyPair, geminiAuctionHistory), params)
 	auctionHist := []AuctionHistory{}
 
 	return auctionHist, common.SendHTTPGetRequest(path, true, g.Verbose, &auctionHist)
@@ -261,7 +264,7 @@ func (g *Gemini) NewOrder(symbol string, amount, price float64, side, orderType 
 
 // CancelOrder will cancel an order. If the order is already canceled, the
 // message will succeed but have no effect.
-func (g *Gemini) CancelOrder(OrderID int64) (Order, error) {
+func (g *Gemini) CancelOrderEx(OrderID int64) (Order, error) {
 	request := make(map[string]interface{})
 	request["order_id"] = OrderID
 
@@ -273,11 +276,21 @@ func (g *Gemini) CancelOrder(OrderID int64) (Order, error) {
 	return response, nil
 }
 
+func (g *Gemini) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	_, err = g.CancelOrderEx(orderID)
+	return err
+}
+
 // CancelOrders will cancel all outstanding orders created by all sessions owned
 // by this account, including interactive orders placed through the UI. If
 // sessions = true will only cancel the order that is called on this session
 // asssociated with the APIKEY
-func (g *Gemini) CancelOrders(CancelBySession bool) (OrderResult, error) {
+func (g *Gemini) cancelOrders(CancelBySession bool) (OrderResult, error) {
 	response := OrderResult{}
 	path := geminiOrderCancelAll
 	if CancelBySession {
@@ -298,8 +311,16 @@ func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrderStatus, request, &response)
 }
 
+func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
+	panic("unimplemented")
+}
+
+func (g *Gemini) GetOrders() ([]exchange.Order, error) {
+	panic("unimplemented")
+}
+
 // GetOrders returns active orders in the market
-func (g *Gemini) GetOrders() ([]Order, error) {
+func (g *Gemini) getOrders() ([]Order, error) {
 	response := []Order{}
 
 	return response,

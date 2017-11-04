@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/thrasher-/gocryptotrader/common"
@@ -205,9 +206,22 @@ func (i *ItBit) GetOrder(walletID string, params url.Values) (Order, error) {
 	return resp, i.SendAuthenticatedHTTPRequest("GET", path, nil, &resp)
 }
 
+func (i *ItBit) CancelOrder(orderCompoundID string) error {
+	res := strings.Split(orderCompoundID, "_")
+	if len(res) != 2 {
+		return errors.New("invalid orderid")
+	}
+
+	return i.cancelOrder(res[0], res[1])
+}
+
+func (i *ItBit) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
 // CancelOrder cancels and open order. *This is not a guarantee that the order
 // has been cancelled!*
-func (i *ItBit) CancelOrder(walletID, orderID string) error {
+func (i *ItBit) cancelOrder(walletID, orderID string) error {
 	path := fmt.Sprintf("/%s/%s/%s/%s", itbitWallets, walletID, itbitOrders, orderID)
 
 	return i.SendAuthenticatedHTTPRequest("DELETE", path, nil, nil)

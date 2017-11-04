@@ -185,7 +185,24 @@ func (b *BTCC) PlaceOrder(buyOrder bool, price, amount float64, market string) {
 	}
 }
 
-func (b *BTCC) CancelOrder(orderID int64, market string) {
+func (b *BTCC) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (b *BTCC) CancelOrder(orderCompoundID string) error {
+	res := strings.Split(orderCompoundID, "_")
+	if len(res) != 2 {
+		return errors.New("invalid orderid")
+	}
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(res[0], 10, 64); err == nil {
+		return err
+	}
+	return b.cancelOrder(orderID, res[1])
+}
+
+func (b *BTCC) cancelOrder(orderID int64, market string) error {
 	params := make([]interface{}, 0)
 	params = append(params, orderID)
 
@@ -197,7 +214,9 @@ func (b *BTCC) CancelOrder(orderID int64, market string) {
 
 	if err != nil {
 		log.Println(err)
+		return err
 	}
+	return nil
 }
 
 func (b *BTCC) GetDeposits(currency string, pending bool) {

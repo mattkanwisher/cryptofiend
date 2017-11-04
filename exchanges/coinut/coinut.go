@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -140,7 +142,11 @@ func (c *COINUT) GetUserBalance() (CoinutUserBalance, error) {
 	return result, nil
 }
 
-func (c *COINUT) NewOrder(instrumentID int, quantity, price float64, buy bool, orderID uint32) (interface{}, error) {
+func (c *COINUT) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (c *COINUT) NewOrder2(instrumentID int, quantity, price float64, buy bool, orderID uint32) (interface{}, error) {
 	var result interface{}
 	params := make(map[string]interface{})
 	params["inst_id"] = instrumentID
@@ -181,7 +187,25 @@ func (c *COINUT) GetOpenOrders(instrumentID int) ([]CoinutOrdersResponse, error)
 	return result, nil
 }
 
-func (c *COINUT) CancelOrder(instrumentID, orderID int) (bool, error) {
+func (c *COINUT) CancelOrder(orderCompoundID string) error {
+	res := strings.Split(orderCompoundID, "_")
+	if len(res) != 2 {
+		return errors.New("invalid orderid")
+	}
+	instrumentID := 0
+	orderID := 0
+	var err error
+	if instrumentID, err = strconv.Atoi(res[0]); err == nil {
+		return err
+	}
+	if orderID, err = strconv.Atoi(res[1]); err == nil {
+		return err
+	}
+	_, err = c.cancelOrder(instrumentID, orderID)
+	return err
+}
+
+func (c *COINUT) cancelOrder(instrumentID, orderID int) (bool, error) {
 	var result CoinutGenericResponse
 	params := make(map[string]interface{})
 	params["inst_id"] = instrumentID

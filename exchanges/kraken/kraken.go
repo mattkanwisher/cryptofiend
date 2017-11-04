@@ -551,7 +551,19 @@ func (k *Kraken) AddOrder(symbol, side, orderType string, price, price2, volume,
 	log.Println(result)
 }
 
-func (k *Kraken) CancelOrder(orderID int64) {
+func (k *Kraken) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	return k.cancelOrder(orderID)
+}
+func (k *Kraken) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (k *Kraken) cancelOrder(orderID int64) error {
 	values := url.Values{}
 	values.Set("txid", strconv.FormatInt(orderID, 10))
 
@@ -559,10 +571,11 @@ func (k *Kraken) CancelOrder(orderID int64) {
 
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 
 	log.Println(result)
+	return nil
 }
 
 func (k *Kraken) SendAuthenticatedHTTPRequest(method string, values url.Values) (interface{}, error) {

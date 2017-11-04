@@ -310,8 +310,22 @@ func (b *Bitstamp) GetOrderStatus(OrderID int64) (OrderStatus, error) {
 		b.SendAuthenticatedHTTPRequest(bitstampAPIOrderStatus, false, req, &resp)
 }
 
+func (b *Bitstamp) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (b *Bitstamp) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	_, err = b.cancelOrder(orderID)
+	return err
+}
+
 // CancelOrder cancels order by ID
-func (b *Bitstamp) CancelOrder(OrderID int64) (bool, error) {
+func (b *Bitstamp) cancelOrder(OrderID int64) (bool, error) {
 	result := false
 	var req = url.Values{}
 	req.Add("id", strconv.FormatInt(OrderID, 10))

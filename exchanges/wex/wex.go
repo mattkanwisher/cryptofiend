@@ -12,6 +12,7 @@ import (
 	"github.com/thrasher-/gocryptotrader/common"
 	"github.com/thrasher-/gocryptotrader/config"
 	exchange "github.com/thrasher-/gocryptotrader/exchanges"
+	"github.com/thrasher-/gocryptotrader/exchanges/orderbook"
 	"github.com/thrasher-/gocryptotrader/exchanges/ticker"
 )
 
@@ -58,6 +59,7 @@ func (w *WEX) SetDefaults() {
 	w.ConfigCurrencyPairFormat.Delimiter = ""
 	w.ConfigCurrencyPairFormat.Uppercase = true
 	w.AssetTypes = []string{ticker.Spot}
+	w.Orderbooks = orderbook.Init()
 }
 
 // Setup sets exchange configuration parameters for WEX
@@ -164,8 +166,22 @@ func (w *WEX) GetOrderInfo(OrderID int64) (map[string]OrderInfo, error) {
 	return result, w.SendAuthenticatedHTTPRequest(wexOrderInfo, req, &result)
 }
 
+func (w *WEX) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
+func (w *WEX) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	_, err = w.cancelOrder(orderID)
+	return err
+}
+
 // CancelOrder cancels an order for a specific order ID
-func (w *WEX) CancelOrder(OrderID int64) (bool, error) {
+func (w *WEX) cancelOrder(OrderID int64) (bool, error) {
 	req := url.Values{}
 	req.Add("order_id", strconv.FormatInt(OrderID, 10))
 

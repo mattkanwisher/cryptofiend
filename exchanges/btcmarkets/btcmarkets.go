@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/thrasher-/gocryptotrader/common"
@@ -128,7 +129,7 @@ func (b *BTCMarkets) GetTrades(symbol string, values url.Values) ([]Trade, error
 // orderside - example "Bid" or "Ask"
 // orderType - example "limit"
 // clientReq - example "abc-cdf-1000"
-func (b *BTCMarkets) NewOrder(currency, instrument string, price, amount int64, orderSide, orderType, clientReq string) (int, error) {
+func (b *BTCMarkets) NewOrder2(currency, instrument string, price, amount int64, orderSide, orderType, clientReq string) (int, error) {
 	order := OrderToGo{
 		Currency:        common.StringToUpper(currency),
 		Instrument:      common.StringToUpper(instrument),
@@ -152,9 +153,23 @@ func (b *BTCMarkets) NewOrder(currency, instrument string, price, amount int64, 
 	return resp.ID, nil
 }
 
+func (b *BTCMarkets) CancelOrder(orderStr string) error {
+	var orderID int64
+	var err error
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+		return err
+	}
+	_, err = b.cancelOrder([]int64{orderID})
+	return err
+}
+
+func (b *BTCMarkets) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+	panic("not implemented")
+}
+
 // CancelOrder cancels an order by its ID
 // orderID - id for order example "1337"
-func (b *BTCMarkets) CancelOrder(orderID []int64) (bool, error) {
+func (b *BTCMarkets) cancelOrder(orderID []int64) (bool, error) {
 	resp := Response{}
 	type CancelOrder struct {
 		OrderIDs []int64 `json:"orderIds"`
