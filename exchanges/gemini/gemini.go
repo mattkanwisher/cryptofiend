@@ -242,7 +242,7 @@ func (g *Gemini) isCorrectSession(role string) error {
 
 // NewOrder Only limit orders are supported through the API at present.
 // returns order ID if successful
-func (g *Gemini) NewOrder(symbol string, amount, price float64, side, orderType string) (string, error) {
+func (g *Gemini) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
 	if err := g.isCorrectSession(geminiRoleTrader); err != nil {
 		return "", err
 	}
@@ -339,11 +339,7 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		retOrder.RemainingAmount = order.RemainingAmount
 		retOrder.Rate = order.Price
 		retOrder.CreatedAt = order.Timestamp
-		if order.Side == "buy" {
-			retOrder.Type = exchange.OrderTypeBuy
-		} else if order.Side == "sell" {
-			retOrder.Type = exchange.OrderTypeSell
-		}
+		retOrder.Side = exchange.OrderSide(order.Side) //no conversion neccessary this exchange uses the word buy/sell
 
 		ret = append(ret, retOrder)
 	}

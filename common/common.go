@@ -18,6 +18,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"reflect"
@@ -275,7 +276,14 @@ func SendHTTPRequest(method, path string, headers map[string]string, body io.Rea
 		req.Header.Add(k, v)
 	}
 
-	httpClient := &http.Client{}
+	requestDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(requestDump))
+
+	timeout := time.Duration(3 * time.Second)
+	httpClient := &http.Client{Timeout: timeout}
 	resp, err := httpClient.Do(req)
 
 	if err != nil {

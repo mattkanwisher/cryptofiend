@@ -308,13 +308,9 @@ func (b *Bitfinex) Withdrawal(withdrawType, wallet, address string, amount float
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexWithdrawal, request, &response)
 }
 
-func (b *Bitfinex) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
-	panic("not implemented")
-}
-
 // NewOrder submits a new order and returns a order information
 // Major Upgrade needed on this function to include all query params
-func (b *Bitfinex) NewOrder2(currencyPair string, amount float64, price float64, buy bool, Type string, hidden bool) (Order, error) {
+func (b *Bitfinex) NewOrder(currencyPair string, amount float64, price float64, side exchange.OrderType, Type string, hidden bool) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
 	request["symbol"] = currencyPair
@@ -323,12 +319,7 @@ func (b *Bitfinex) NewOrder2(currencyPair string, amount float64, price float64,
 	request["exchange"] = "bitfinex"
 	request["type"] = Type
 	request["is_hidden"] = hidden
-
-	if buy {
-		request["side"] = "buy"
-	} else {
-		request["side"] = "sell"
-	}
+	request["side"] = side // this exchange uses the string buy/sell so no conversion neccessary
 
 	return response,
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderNew, request, &response)

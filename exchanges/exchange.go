@@ -36,10 +36,14 @@ type AccountCurrencyInfo struct {
 }
 
 type OrderType string
+type OrderSide string
 
 const (
-	OrderTypeBuy  OrderType = "buy"
-	OrderTypeSell OrderType = "sell"
+	OrderSideBuy  OrderSide = "buy"
+	OrderSideSell OrderSide = "sell"
+)
+const (
+	OrderTypeExchangeLimit OrderType = "exchange limit"
 )
 
 type OrderStatus string
@@ -54,14 +58,16 @@ const (
 type Order struct {
 	CurrencyPair    string
 	Type            OrderType
+	Side            OrderSide
 	Amount          float64 //original amount requested
 	FilledAmount    float64
 	RemainingAmount float64
 	Rate            float64
 	CreatedAt       int64 // timestamp
 	//	LastUpdate      int64 // timestamp
-	Status  OrderStatus
-	OrderID string // ID of order this exchange order was generated for
+	Status          OrderStatus
+	OrderID         string // ID of order this exchange order was generated for
+	InternalOrderID string // ID to track inside of bot
 }
 
 // Base stores the individual exchange information
@@ -107,7 +113,7 @@ type IBotExchange interface {
 //Extended bot itterface for new methods
 type IBotExchangeEx interface {
 	IBotExchange
-	NewOrder(symbol string, amount, price float64, side, orderType string) (string, error)
+	NewOrder(symbol string, amount, price float64, side OrderSide, orderType string) (string, error)
 	CancelOrder(OrderID string) error
 	GetOrder(orderID string) (Order, error)
 	GetOrders() ([]Order, error)
