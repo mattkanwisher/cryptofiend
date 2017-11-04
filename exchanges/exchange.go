@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	exchange "github.com/mattkanwisher/bk/exchanges"
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
@@ -114,7 +113,7 @@ type IBotExchange interface {
 //Extended bot itterface for new methods
 type IBotExchangeEx interface {
 	IBotExchange
-	NewOrder(symbol string, amount, price float64, side OrderSide, orderType exchange.OrderType) (string, error)
+	NewOrder(symbol string, amount, price float64, side OrderSide, orderType OrderType) (string, error)
 	CancelOrder(OrderID string) error
 	GetOrder(orderID string) (Order, error)
 	GetOrders() ([]Order, error)

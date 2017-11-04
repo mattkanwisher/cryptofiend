@@ -447,7 +447,7 @@ func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (p *Poloniex) NewOrder(symbol string, amount, price float64, side, orderType string) (string, error) {
+func (p *Poloniex) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
 	panic("not implemented")
 }
 
