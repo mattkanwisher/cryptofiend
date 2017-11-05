@@ -3,7 +3,6 @@ package liqui
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/config"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -176,7 +176,7 @@ func (l *Liqui) GetAccountInfo() (AccountInfo, error) {
 
 // Trade creates orders on the exchange.
 // to-do: convert orderid to int64
-func (l *Liqui) Trade(pair, orderType string, amount, price float64) (float64, error) {
+func (l *Liqui) Trade(pair, orderType string, amount, price float64) (int64, error) {
 	req := url.Values{}
 	req.Add("pair", pair)
 	req.Add("type", orderType)
@@ -211,7 +211,17 @@ func (l *Liqui) GetOrder(orderID string) (exchange.Order, error) {
 }
 
 func (l *Liqui) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	panic("not implemented")
+	o64, err := l.Trade(symbol, string(side), amount, price)
+	if err != nil {
+		return "", err
+	}
+	orderID := strconv.FormatInt(o64, 10)
+	if o64 == 0 {
+		// if for some reason they can automatically match it will return zero
+		log.Warn("Fully matched already!!! TODO:")
+
+	}
+	return orderID, nil
 }
 
 func (l *Liqui) GetOrders() ([]exchange.Order, error) {

@@ -80,7 +80,7 @@ type OrderInfo struct {
 
 // CancelOrder holds cancelled order information
 type CancelOrder struct {
-	OrderID float64            `json:"order_id"`
+	OrderID int64            `json:"order_id"`
 	Funds   map[string]float64 `json:"funds"`
 }
 
@@ -88,7 +88,7 @@ type CancelOrder struct {
 type Trade struct {
 	Received float64            `json:"received"`
 	Remains  float64            `json:"remains"`
-	OrderID  float64            `json:"order_id"`
+	OrderID  int64            `json:"order_id"`
 	Funds    map[string]float64 `json:"funds"`
 }
 
@@ -98,7 +98,7 @@ type TradeHistory struct {
 	Type      string  `json:"type"`
 	Amount    float64 `json:"amount"`
 	Rate      float64 `json:"rate"`
-	OrderID   float64 `json:"order_id"`
+	OrderID   int64 `json:"order_id"`
 	MyOrder   int     `json:"is_your_order"`
 	Timestamp float64 `json:"timestamp"`
 }
