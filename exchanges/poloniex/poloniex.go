@@ -347,30 +347,32 @@ func (p *Poloniex) GetDepositsWithdrawals(start, end string) (PoloniexDepositsWi
 	return resp, nil
 }
 
-func (p *Poloniex) GetOpenOrders(currency string) (interface{}, error) {
+func (p *Poloniex) GetOpenOrders(currency string) (PoloniexOpenOrdersResponse, error) {
 	values := url.Values{}
 
-	if currency != "" {
-		values.Set("currencyPair", currency)
-		result := PoloniexOpenOrdersResponse{}
-		err := p.SendAuthenticatedHTTPRequest("POST", POLONIEX_ORDERS, values, &result.Data)
+	values.Set("currencyPair", currency)
+	result := PoloniexOpenOrdersResponse{}
+	err := p.SendAuthenticatedHTTPRequest("POST", POLONIEX_ORDERS, values, &result.Data)
 
-		if err != nil {
-			return result, err
-		}
-
-		return result, nil
-	} else {
-		values.Set("currencyPair", "all")
-		result := PoloniexOpenOrdersResponseAll{}
-		err := p.SendAuthenticatedHTTPRequest("POST", POLONIEX_ORDERS, values, &result.Data)
-
-		if err != nil {
-			return result, err
-		}
-
-		return result, nil
+	if err != nil {
+		return result, err
 	}
+
+	return result, nil
+}
+
+func (p *Poloniex) GetAllOpenOrders() (PoloniexOpenOrdersResponseAll, error) {
+	values := url.Values{}
+
+	values.Set("currencyPair", "all")
+	result := PoloniexOpenOrdersResponseAll{}
+	err := p.SendAuthenticatedHTTPRequest("POST", POLONIEX_ORDERS, values, &result.Data)
+
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
 }
 
 func (p *Poloniex) GetAuthenticatedTradeHistory(currency, start, end string) (interface{}, error) {
@@ -444,7 +446,37 @@ func (p *Poloniex) GetOrder(orderID string) (exchange.Order, error) {
 }
 
 func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
-	panic("unimplemented")
+	ret := []exchange.Order{}
+
+	activeorders, err := p.GetAllOpenOrders()
+	if err != nil {
+		return ret, err
+	}
+
+	for currenyPair, orders := range activeorders.Data {
+		for _, order := range orders {
+			retOrder := exchange.Order{}
+			retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
+
+			//All orders that get returned are active
+			//TODO how to handle canceled orders
+			retOrder.Status = exchange.OrderStatusActive
+			if err != nil {
+				continue
+			}
+			//TODO: verify total is actually correct, its the total filled??
+			retOrder.FilledAmount = order.Total
+			retOrder.RemainingAmount = order.Amount - order.Total
+			retOrder.Amount = order.Amount
+			retOrder.Rate = order.Rate
+			retOrder.CreatedAt = order.Date.Unix()
+			retOrder.CurrencyPair = currenyPair
+			retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+
+			ret = append(ret, retOrder)
+		}
+	}
+	return ret, nil
 }
 
 func (p *Poloniex) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {

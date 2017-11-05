@@ -1,5 +1,9 @@
 package poloniex
 
+import (
+	"time"
+)
+
 type PoloniexTicker struct {
 	Last          float64 `json:"last,string"`
 	LowestAsk     float64 `json:"lowestAsk,string"`
@@ -115,7 +119,7 @@ type PoloniexOrder struct {
 	Rate        float64 `json:"rate,string"`
 	Amount      float64 `json:"amount,string"`
 	Total       float64 `json:"total,string"`
-	Date        string  `json:"date"`
+	Date       *time.Time `json:"dae,omitempty"` //TODO verify this parses
 	Margin      float64 `json:"margin"`
 }
 

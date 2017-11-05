@@ -253,7 +253,6 @@ func (l *Liqui) GetOrders() ([]exchange.Order, error) {
 		ret = append(ret, retOrder)
 	}
 	return ret, nil
-
 }
 
 // CancelOrder method is used for order cancelation.
