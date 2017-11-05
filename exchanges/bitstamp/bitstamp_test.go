@@ -204,7 +204,7 @@ func TestCancelOrder(t *testing.T) {
 	b.APISecret = apiSecret
 	b.ClientID = customerID
 
-	resp, err := b.CancelOrder(1337)
+	resp, err := b.cancelOrder(1337)
 	if err == nil || resp != false {
 		t.Error("Test Failed - CancelOrder() error")
 	}

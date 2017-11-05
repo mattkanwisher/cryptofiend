@@ -96,7 +96,7 @@ func TestNewOrder(t *testing.T) {
 
 func TestCancelOrder(t *testing.T) {
 	t.Parallel()
-	_, err := bm.CancelOrder([]int64{1337})
+	err := bm.CancelOrder("1337")
 	if err == nil {
 		t.Error("Test failed - CancelOrder() error", err)
 	}

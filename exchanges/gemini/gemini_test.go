@@ -141,11 +141,11 @@ func TestCancelOrder(t *testing.T) {
 
 func TestCancelOrders(t *testing.T) {
 	t.Parallel()
-	_, err := Session[1].CancelOrders(false)
+	_, err := Session[1].cancelOrders(false)
 	if err == nil {
 		t.Error("Test Failed - CancelOrders() error", err)
 	}
-	_, err = Session[2].CancelOrders(true)
+	_, err = Session[2].cancelOrders(true)
 	if err == nil {
 		t.Error("Test Failed - CancelOrders() error", err)
 	}

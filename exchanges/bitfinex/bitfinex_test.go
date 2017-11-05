@@ -264,7 +264,7 @@ func TestWithdrawal(t *testing.T) {
 func TestNewOrder(t *testing.T) {
 	t.Parallel()
 
-	_, err := b.NewOrder("BTCUSD", 1, 2, true, "market", false)
+	err := b.NewOrder("BTCUSD", 1, 2, true, "market", false)
 	if err == nil {
 		t.Error("Test Failed - NewOrder() error")
 	}
@@ -293,7 +293,7 @@ func TestNewOrderMulti(t *testing.T) {
 func TestCancelOrder(t *testing.T) {
 	t.Parallel()
 
-	_, err := b.CancelOrder(1337)
+	err := b.CancelOrder("1337")
 	if err == nil {
 		t.Error("Test Failed - CancelOrder() error")
 	}

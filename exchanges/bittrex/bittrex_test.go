@@ -182,7 +182,7 @@ func TestCancelOrder(t *testing.T) {
 	obj := Bittrex{}
 	obj.APIKey = apiKey
 	obj.APISecret = apiSecret
-	_, err := obj.CancelOrder("blaaaaaaa")
+	err := obj.CancelOrder("blaaaaaaa")
 	if err == nil {
 		t.Error("Test Failed - Bittrex - CancelOrder() error")
 	}

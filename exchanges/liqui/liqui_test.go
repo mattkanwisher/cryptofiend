@@ -104,7 +104,7 @@ func TestGetOrderInfo(t *testing.T) {
 }
 
 func TestCancelOrder(t *testing.T) {
-	_, err := l.CancelOrder(1337)
+	err := l.CancelOrder("1337")
 	if err == nil {
 		t.Error("Test Failed - liqui CancelOrder() error", err)
 	}
