@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -409,16 +409,9 @@ func (p *Poloniex) GetAuthenticatedTradeHistory(currency, start, end string) (in
 	}
 }
 
-func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, fillOrKill, buy bool) (PoloniexOrderResponse, error) {
+func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, fillOrKill bool, orderType exchange.OrderSide) (PoloniexOrderResponse, error) {
 	result := PoloniexOrderResponse{}
 	values := url.Values{}
-
-	var orderType string
-	if buy {
-		orderType = POLONIEX_ORDER_BUY
-	} else {
-		orderType = POLONIEX_ORDER_SELL
-	}
 
 	values.Set("currencyPair", currency)
 	values.Set("rate", strconv.FormatFloat(rate, 'f', -1, 64))
@@ -432,7 +425,7 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 		values.Set("fillOrKill", "1")
 	}
 
-	err := p.SendAuthenticatedHTTPRequest("POST", orderType, values, &result)
+	err := p.SendAuthenticatedHTTPRequest("POST", string(orderType), values, &result)
 
 	if err != nil {
 		return result, err
@@ -480,8 +473,21 @@ func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
 }
 
 func (p *Poloniex) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	panic("not implemented")
-}
+	/*You may optionally set "fillOrKill", "immediateOrCancel", "postOnly" to 1. A fill-or-kill order will either fill in its entirety or be completely aborted. An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book. A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.*/
+	//TODO thimk about this more
+	immediate := false
+	fillOrKill := false
+
+	presp, err := p.PlaceOrder(string(symbol), price, amount, immediate, fillOrKill, side)
+
+	if err != nil {
+		return "", err
+	}
+	orderID := strconv.FormatInt(presp.OrderNumber, 10)
+	//TODO returns a list of finished trades PoloniexResultingTrades
+	//guessing this exchange can fill automattically???
+
+	return orderID, nil}
 
 func (p *Poloniex) CancelOrder(orderstr string) error {
 	var err error
