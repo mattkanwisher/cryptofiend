@@ -339,6 +339,7 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		retOrder.RemainingAmount = order.RemainingAmount
 		retOrder.Rate = order.Price
 		retOrder.CreatedAt = order.Timestamp
+		retOrder.CurrencyPair = order.Symbol
 		retOrder.Side = exchange.OrderSide(order.Side) //no conversion neccessary this exchange uses the word buy/sell
 
 		ret = append(ret, retOrder)

@@ -215,7 +215,35 @@ func (l *Liqui) NewOrder(symbol string, amount, price float64, side exchange.Ord
 }
 
 func (l *Liqui) GetOrders() ([]exchange.Order, error) {
-	panic("unimplemented")
+	ret := []exchange.Order{}
+	//todo blank should be  "all pairs"
+	activeorders, err := l.GetActiveOrders("")
+	if err != nil {
+		return ret, err
+	}
+	for orderID, order := range activeorders {
+		retOrder := exchange.Order{}
+		retOrder.OrderID = orderID
+
+		//All orders that get returned are active
+		//TODO how to handle canceled orders
+		retOrder.Status = exchange.OrderStatusActive
+		if err != nil {
+			continue
+		} 
+		//TODO: this can only be gotten from using the GetORder method
+		//retOrder.FilledAmount = order.StartAmount - order.Amount
+		//retOrder.RemainingAmount = order.Amount
+		retOrder.Amount = order.Amount
+		retOrder.Rate = order.Rate
+		retOrder.CreatedAt = order.TimestampCreated
+		retOrder.CurrencyPair = order.Pair
+		retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+
+		ret = append(ret, retOrder)
+	}
+	return ret, nil
+
 }
 
 // CancelOrder method is used for order cancelation.

@@ -63,7 +63,7 @@ type ActiveOrders struct {
 	Type             string  `json:"sell"`
 	Amount           float64 `json:"amount"`
 	Rate             float64 `json:"rate"`
-	TimestampCreated float64 `json:"time_created"`
+	TimestampCreated int64 `json:"time_created"`
 	Status           int     `json:"status"`
 }
 
