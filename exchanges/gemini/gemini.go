@@ -243,10 +243,6 @@ func (g *Gemini) isCorrectSession(role string) error {
 // NewOrder Only limit orders are supported through the API at present.
 // returns order ID if successful
 func (g *Gemini) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
-	if err := g.isCorrectSession(geminiRoleTrader); err != nil {
-		return "", err
-	}
-
 	request := make(map[string]interface{})
 	request["symbol"] = symbol
 	request["amount"] = strconv.FormatFloat(amount, 'f', -1, 64)
