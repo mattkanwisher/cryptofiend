@@ -56,7 +56,7 @@ const (
 )
 
 type Order struct {
-	CurrencyPair    string
+	CurrencyPair    pair.CurrencyPair
 	Type            OrderType
 	Side            OrderSide
 	Amount          float64 //original amount requested

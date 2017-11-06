@@ -248,7 +248,7 @@ func (l *Liqui) GetOrders() ([]exchange.Order, error) {
 		retOrder.Amount = order.Amount
 		retOrder.Rate = order.Rate
 		retOrder.CreatedAt = order.TimestampCreated
-		retOrder.CurrencyPair = order.Pair
+		retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Pair)
 		retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
 
 		ret = append(ret, retOrder)

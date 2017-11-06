@@ -464,7 +464,7 @@ func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
 			retOrder.Amount = order.Amount
 			retOrder.Rate = order.Rate
 			retOrder.CreatedAt = order.Date.Unix()
-			retOrder.CurrencyPair = currenyPair
+			retOrder.CurrencyPair = pair.NewCurrencyPairFromString(currenyPair)
 			retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
 
 			ret = append(ret, retOrder)
