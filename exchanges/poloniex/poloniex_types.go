@@ -114,13 +114,13 @@ type PoloniexDepositsWithdrawals struct {
 }
 
 type PoloniexOrder struct {
-	OrderNumber int64   `json:"orderNumber,string"`
-	Type        string  `json:"type"`
-	Rate        float64 `json:"rate,string"`
-	Amount      float64 `json:"amount,string"`
-	Total       float64 `json:"total,string"`
-	Date       *time.Time `json:"dae,omitempty"` //TODO verify this parses
-	Margin      float64 `json:"margin"`
+	OrderNumber int64      `json:"orderNumber,string"`
+	Type        string     `json:"type"`
+	Rate        float64    `json:"rate,string"`
+	Amount      float64    `json:"amount,string"`
+	Total       float64    `json:"total,string"`
+	Date        *time.Time `json:"date,omitempty"` //TODO verify this parses
+	Margin      float64    `json:"margin"`
 }
 
 type PoloniexOpenOrdersResponseAll struct {
