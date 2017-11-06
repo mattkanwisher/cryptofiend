@@ -12,6 +12,7 @@ import (
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
@@ -227,7 +228,7 @@ func (b *Bittrex) GetOrder(orderID string) (exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (b *Bittrex) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
+func (b *Bittrex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
 	panic("not implemented")
 }
 

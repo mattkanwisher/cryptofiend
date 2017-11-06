@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 	log "github.com/sirupsen/logrus"
@@ -210,8 +211,8 @@ func (l *Liqui) GetOrder(orderID string) (exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (l *Liqui) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	o64, err := l.Trade(symbol, string(side), amount, price)
+func (l *Liqui) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
+	o64, err := l.Trade(string(symbol.Display("_", true)), string(side), amount, price)
 	if err != nil {
 		return "", err
 	}
@@ -240,7 +241,7 @@ func (l *Liqui) GetOrders() ([]exchange.Order, error) {
 		retOrder.Status = exchange.OrderStatusActive
 		if err != nil {
 			continue
-		} 
+		}
 		//TODO: this can only be gotten from using the GetORder method
 		//retOrder.FilledAmount = order.StartAmount - order.Amount
 		//retOrder.RemainingAmount = order.Amount

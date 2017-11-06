@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
@@ -472,13 +473,13 @@ func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
 	return ret, nil
 }
 
-func (p *Poloniex) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
+func (p *Poloniex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
 	/*You may optionally set "fillOrKill", "immediateOrCancel", "postOnly" to 1. A fill-or-kill order will either fill in its entirety or be completely aborted. An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book. A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.*/
 	//TODO thimk about this more
 	immediate := false
 	fillOrKill := false
 
-	presp, err := p.PlaceOrder(string(symbol), price, amount, immediate, fillOrKill, side)
+	presp, err := p.PlaceOrder(string(symbol.Display("_", true)), price, amount, immediate, fillOrKill, side)
 
 	if err != nil {
 		return "", err
@@ -487,7 +488,8 @@ func (p *Poloniex) NewOrder(symbol string, amount, price float64, side exchange.
 	//TODO returns a list of finished trades PoloniexResultingTrades
 	//guessing this exchange can fill automattically???
 
-	return orderID, nil}
+	return orderID, nil
+}
 
 func (p *Poloniex) CancelOrder(orderstr string) error {
 	var err error

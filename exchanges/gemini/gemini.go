@@ -10,6 +10,7 @@ import (
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
@@ -242,9 +243,9 @@ func (g *Gemini) isCorrectSession(role string) error {
 
 // NewOrder Only limit orders are supported through the API at present.
 // returns order ID if successful
-func (g *Gemini) NewOrder(symbol string, amount, price float64, side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
+func (g *Gemini) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
 	request := make(map[string]interface{})
-	request["symbol"] = symbol
+	request["symbol"] = symbol.Display("", false)
 	request["amount"] = strconv.FormatFloat(amount, 'f', -1, 64)
 	request["price"] = strconv.FormatFloat(price, 'f', -1, 64)
 	request["side"] = side
