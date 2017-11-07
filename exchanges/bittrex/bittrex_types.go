@@ -1,6 +1,9 @@
 package bittrex
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Response is the generalised response type for Bittrex
 type Response struct {
@@ -106,29 +109,29 @@ type UUID struct {
 
 // Order holds the full order information associated with the UUID supplied
 type Order struct {
-	AccountID                  string  `json:"AccountId"`
-	OrderUUID                  string  `json:"OrderUuid"`
-	Exchange                   string  `json:"Exchange"`
-	Type                       string  `json:"Type"`
-	Quantity                   float64 `json:"Quantity"`
-	QuantityRemaining          float64 `json:"QuantityRemaining"`
-	Limit                      float64 `json:"Limit"`
-	Reserved                   float64 `json:"Reserved"`
-	ReserveRemaining           float64 `json:"ReserveRemaining"`
-	CommissionReserved         float64 `json:"CommissionReserved"`
-	CommissionReserveRemaining float64 `json:"CommissionReserveRemaining"`
-	CommissionPaid             float64 `json:"CommissionPaid"`
-	Price                      float64 `json:"Price"`
-	PricePerUnit               float64 `json:"PricePerUnit"`
-	Opened                     string  `json:"Opened"`
-	Closed                     string  `json:"Closed"`
-	IsOpen                     bool    `json:"IsOpen"`
-	Sentinel                   string  `json:"Sentinel"`
-	CancelInitiated            bool    `json:"CancelInitiated"`
-	ImmediateOrCancel          bool    `json:"ImmediateOrCancel"`
-	IsConditional              bool    `json:"IsConditional"`
-	Condition                  string  `json:"Condition"`
-	ConditionTarget            string  `json:"ConditionTarget"`
+	AccountID                  string    `json:"AccountId"`
+	OrderUUID                  string    `json:"OrderUuid"`
+	Exchange                   string    `json:"Exchange"`
+	Type                       string    `json:"Type"`
+	Quantity                   float64   `json:"Quantity"`
+	QuantityRemaining          float64   `json:"QuantityRemaining"`
+	Limit                      float64   `json:"Limit"`
+	Reserved                   float64   `json:"Reserved"`
+	ReserveRemaining           float64   `json:"ReserveRemaining"`
+	CommissionReserved         float64   `json:"CommissionReserved"`
+	CommissionReserveRemaining float64   `json:"CommissionReserveRemaining"`
+	CommissionPaid             float64   `json:"CommissionPaid"`
+	Price                      float64   `json:"Price"`
+	PricePerUnit               float64   `json:"PricePerUnit"`
+	Opened                     time.Time `json:"Opened"` //TODO see if this parses!!!
+	Closed                     string    `json:"Closed"`
+	IsOpen                     bool      `json:"IsOpen"`
+	Sentinel                   string    `json:"Sentinel"`
+	CancelInitiated            bool      `json:"CancelInitiated"`
+	ImmediateOrCancel          bool      `json:"ImmediateOrCancel"`
+	IsConditional              bool      `json:"IsConditional"`
+	Condition                  string    `json:"Condition"`
+	ConditionTarget            string    `json:"ConditionTarget"`
 }
 
 // WithdrawalHistory holds the Withdrawal history data

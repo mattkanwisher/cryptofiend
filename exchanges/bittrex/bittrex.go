@@ -179,8 +179,8 @@ func (b *Bittrex) GetMarketHistory(currencyPair string) ([]MarketHistory, error)
 // "Currency" ie "btc-ltc"
 // "Quantity" is the amount to purchase
 // "Rate" is the rate at which to purchase
-func (b *Bittrex) PlaceBuyLimit(currencyPair string, quantity, rate float64) ([]UUID, error) {
-	var id []UUID
+func (b *Bittrex) PlaceBuyLimit(currencyPair string, quantity, rate float64) (string, error) {
+	var id string //TODO validate that this gets converted correctly
 	values := url.Values{}
 	values.Set("market", currencyPair)
 	values.Set("quantity", strconv.FormatFloat(quantity, 'E', -1, 64))
@@ -196,8 +196,8 @@ func (b *Bittrex) PlaceBuyLimit(currencyPair string, quantity, rate float64) ([]
 // "Currency" ie "btc-ltc"
 // "Quantity" is the amount to purchase
 // "Rate" is the rate at which to purchase
-func (b *Bittrex) PlaceSellLimit(currencyPair string, quantity, rate float64) ([]UUID, error) {
-	var id []UUID
+func (b *Bittrex) PlaceSellLimit(currencyPair string, quantity, rate float64) (string, error) {
+	var id string //TODO validate that this gets converted correctly
 	values := url.Values{}
 	values.Set("market", currencyPair)
 	values.Set("quantity", strconv.FormatFloat(quantity, 'E', -1, 64))
@@ -229,11 +229,52 @@ func (b *Bittrex) GetOrder(orderID string) (exchange.Order, error) {
 }
 
 func (b *Bittrex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	panic("not implemented")
+	if side == exchange.OrderSideBuy {
+		orderID, err := b.PlaceBuyLimit(string(symbol.Display("-", false)), amount, price)
+		if err != nil {
+			return "", err
+		}
+		return orderID, err
+	} else if side == exchange.OrderSideSell {
+		orderID, err := b.PlaceSellLimit(string(symbol.Display("-", false)), amount, price)
+		if err != nil {
+			return "", err
+		}
+		return orderID, err
+	}
+	return "", errors.New("invalid data trying to make a new order on bittrex")
 }
 
 func (b *Bittrex) GetOrders() ([]exchange.Order, error) {
-	panic("unimplemented")
+	ret := []exchange.Order{}
+
+	//TODO it looks like you want to use /account/getorderhistory
+	// instead of /market/getopenorders  since it should have more data but we need to test that
+	orders, err := b.GetOrderHistory("")
+	if err != nil {
+		return ret, err
+	}
+	for _, order := range orders {
+		retOrder := exchange.Order{}
+		retOrder.OrderID = order.OrderUUID
+
+		//All orders that get returned are active
+		//TODO how to handle canceled orders
+		retOrder.Status = exchange.OrderStatusActive
+		if err != nil {
+			continue
+		}
+		retOrder.FilledAmount = order.Quantity - order.QuantityRemaining
+		retOrder.RemainingAmount = order.QuantityRemaining
+		retOrder.Amount = order.Quantity
+		retOrder.Rate = order.Price //PricePerunit ?????
+		retOrder.CreatedAt = order.Opened.Unix()
+		retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Exchange)
+		retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+
+		ret = append(ret, retOrder)
+	}
+	return ret, nil
 }
 
 // CancelOrder is used to cancel a buy or sell order.
