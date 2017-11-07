@@ -312,13 +312,9 @@ func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (g *Gemini) GetOrders() ([]exchange.Order, error) {
-	ret := []exchange.Order{}
-	orders, err := g.getOrders()
-	if err != nil {
-		return ret, err
-	}
-	for _, order := range orders {
+func geminiOrdersToExchangeOrders(geminiOrders []Order) []exchange.Order {
+	ret := make([]exchange.Order, 0, len(geminiOrders))
+	for _, order := range geminiOrders {
 		retOrder := exchange.Order{}
 		retOrder.OrderID = strconv.FormatInt(order.OrderID, 10)
 
@@ -329,9 +325,6 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		} else {
 			retOrder.Status = exchange.OrderStatusUnknown
 		}
-		if err != nil {
-			continue
-		}
 		retOrder.FilledAmount = order.ExecutedAmount
 		retOrder.RemainingAmount = order.RemainingAmount
 		retOrder.Rate = order.Price
@@ -340,6 +333,52 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		retOrder.Side = exchange.OrderSide(order.Side) //no conversion neccessary this exchange uses the word buy/sell
 
 		ret = append(ret, retOrder)
+	}
+	return ret
+}
+
+func geminiPastTradeToExchangeOrder(symbol string, geminiPastTrades []TradeHistory) []exchange.Order {
+	// TODO: handle broken/cancelled trades?
+	orders := make([]exchange.Order, 0, len(geminiPastTrades))
+	for _, trade := range geminiPastTrades {
+		order := exchange.Order{}
+		order.OrderID = strconv.FormatInt(trade.OrderID, 10)
+		order.Status = exchange.OrderStatusFilled
+		order.FilledAmount = trade.Amount
+		order.RemainingAmount = 0
+		order.Rate = trade.Price
+		order.CreatedAt = trade.Timestamp
+		order.CurrencyPair = pair.NewCurrencyPairFromString(strings.ToUpper(symbol))
+		order.Side = exchange.OrderSide(strings.ToLower(trade.Type))
+
+		orders = append(orders, order)
+	}
+	return orders
+}
+
+func (g *Gemini) GetOrders() ([]exchange.Order, error) {
+	// Fetch active orders.
+	orders, err := g.getOrders()
+	if err != nil {
+		return nil, err
+	}
+
+	ret := geminiOrdersToExchangeOrders(orders)
+
+	symbols, err := g.GetSymbols()
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the past trades for each available currency pair.
+	for _, symbol := range symbols {
+		// TODO: Currently this will return at most 50 past trades, it is possible to get up to 500
+		// in one go, more than that will require multiple calls (with a timestamp set).
+		trades, err := g.GetTradeHistory(symbol, 0)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, geminiPastTradeToExchangeOrder(symbol, trades)...)
 	}
 	return ret, nil
 }
