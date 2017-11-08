@@ -2,6 +2,7 @@ package orderbook
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
@@ -86,7 +87,7 @@ func (o *Orderbooks) GetOrderbook(exchange string, p pair.CurrencyPair, orderboo
 	}
 
 	if !o.SecondCurrencyExists(exchange, p) {
-		return Base{}, errors.New(ErrSecondaryCurrencyNotFound)
+		return Base{}, fmt.Errorf("%s-%s-%s", ErrSecondaryCurrencyNotFound, p.GetFirstCurrency(), p.GetSecondCurrency())
 	}
 
 	return orderbook.Orderbook[p.GetFirstCurrency()][p.GetSecondCurrency()][orderbookType], nil
