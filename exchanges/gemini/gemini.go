@@ -12,6 +12,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/config"
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
@@ -110,6 +111,7 @@ func (g *Gemini) SetDefaults() {
 	g.ConfigCurrencyPairFormat.Delimiter = ""
 	g.ConfigCurrencyPairFormat.Uppercase = true
 	g.AssetTypes = []string{ticker.Spot}
+	g.Orderbooks = orderbook.Init()
 }
 
 // Setup sets exchange configuration parameters
@@ -188,7 +190,6 @@ func (g *Gemini) GetTicker(currencyPair string) (Ticker, error) {
 func (g *Gemini) GetOrderbook(currencyPair string, params url.Values) (Orderbook, error) {
 	path := common.EncodeURLValues(fmt.Sprintf("%s/v%s/%s/%s", g.APIUrl, geminiAPIVersion, geminiOrderbook, currencyPair), params)
 	orderbook := Orderbook{}
-
 	return orderbook, common.SendHTTPGetRequest(path, true, g.Verbose, &orderbook)
 }
 

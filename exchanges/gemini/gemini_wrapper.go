@@ -89,7 +89,8 @@ func (g *Gemini) GetOrderbookEx(p pair.CurrencyPair, assetType string) (orderboo
 // UpdateOrderbook updates and returns the orderbook for a currency pair
 func (g *Gemini) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
 	var orderBook orderbook.Base
-	orderbookNew, err := g.GetOrderbook(string(p.Display("", false)), url.Values{})
+	obookStr := string(p.Display("", false))
+	orderbookNew, err := g.GetOrderbook(obookStr, url.Values{})
 	if err != nil {
 		return orderBook, err
 	}
@@ -102,6 +103,6 @@ func (g *Gemini) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderbo
 		orderBook.Asks = append(orderBook.Asks, orderbook.Item{Amount: orderbookNew.Asks[x].Amount, Price: orderbookNew.Asks[x].Price})
 	}
 
-	g.Orderbooks.ProcessOrderbook(g.GetName(), p, orderBook, assetType)
+	g.Orderbooks.ProcessOrderbook("", p, orderBook, assetType)
 	return g.Orderbooks.GetOrderbook(g.Name, p, assetType)
 }
