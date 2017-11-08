@@ -308,8 +308,35 @@ func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrderStatus, request, &response)
 }
 
-func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
-	panic("unimplemented")
+func (g *Gemini) GetOrder(orderIDStr string) (exchange.Order, error) {
+	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
+	if err != nil {
+		return exchange.Order{}, err
+	}
+	order, err := g.GetOrderStatus(orderID)
+	if err == nil {
+		return geminiOrderToExchangeOrder(order), nil
+	}
+	return exchange.Order{}, err
+}
+
+func geminiOrderToExchangeOrder(geminiOrder Order) exchange.Order {
+	retOrder := exchange.Order{}
+	retOrder.OrderID = strconv.FormatInt(geminiOrder.OrderID, 10)
+	if geminiOrder.IsLive == true {
+		retOrder.Status = exchange.OrderStatusActive
+	} else if geminiOrder.IsCancelled == true {
+		retOrder.Status = exchange.OrderStatusAborted
+	} else {
+		retOrder.Status = exchange.OrderStatusUnknown
+	}
+	retOrder.FilledAmount = geminiOrder.ExecutedAmount
+	retOrder.RemainingAmount = geminiOrder.RemainingAmount
+	retOrder.Rate = geminiOrder.Price
+	retOrder.CreatedAt = geminiOrder.Timestamp
+	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(geminiOrder.Symbol)
+	retOrder.Side = exchange.OrderSide(geminiOrder.Side) //no conversion neccessary this exchange uses the word buy/sell
+	return retOrder
 }
 
 func geminiOrdersToExchangeOrders(geminiOrders []Order) []exchange.Order {
