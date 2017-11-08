@@ -276,7 +276,7 @@ func (g *Gemini) CancelOrderEx(OrderID int64) (Order, error) {
 func (g *Gemini) CancelOrder(orderStr string) error {
 	var orderID int64
 	var err error
-	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err != nil {
 		return err
 	}
 	_, err = g.CancelOrderEx(orderID)
