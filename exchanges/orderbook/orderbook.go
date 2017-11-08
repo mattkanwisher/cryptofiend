@@ -9,7 +9,7 @@ import (
 
 // Const values for orderbook package
 const (
-	ErrOrderbookForExchangeNotFound = "Ticker for exchange does not exist."
+	ErrOrderbookForExchangeNotFound = "Orderbook for exchange does not exist."
 	ErrPrimaryCurrencyNotFound      = "Error primary currency for orderbook not found."
 	ErrSecondaryCurrencyNotFound    = "Error secondary currency for orderbook not found."
 

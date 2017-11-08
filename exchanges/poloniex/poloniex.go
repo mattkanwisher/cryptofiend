@@ -79,9 +79,8 @@ func (p *Poloniex) Setup(exch config.ExchangeConfig) {
 		p.RESTPollingDelay = exch.RESTPollingDelay
 		p.Verbose = exch.Verbose
 		p.Websocket = exch.Websocket
-		p.BaseCurrencies = common.SplitStrings(exch.BaseCurrencies, ",")
-		p.AvailablePairs = common.SplitStrings(exch.AvailablePairs, ",")
-		p.EnabledPairs = common.SplitStrings(exch.EnabledPairs, ",")
+
+		p.Base.CommonSetup(exch)
 		err := p.SetCurrencyPairFormat()
 		if err != nil {
 			log.Fatal(err)

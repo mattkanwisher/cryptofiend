@@ -206,6 +206,13 @@ func (e *Base) GetName() string {
 	return e.Name
 }
 
+// Common exchange setup method so we can stop duplicating so much code
+func (e *Base) CommonSetup(exch config.ExchangeConfig) {
+	e.BaseCurrencies = common.SplitStrings(exch.BaseCurrencies, ",")
+	e.AvailablePairs = common.SplitStrings(exch.AvailablePairs, ",")
+	e.EnabledPairs = common.SplitStrings(exch.EnabledPairs, ",")
+}
+
 // GetEnabledCurrencies is a method that returns the enabled currency pairs of
 // the exchange base
 func (e *Base) GetEnabledCurrencies() []pair.CurrencyPair {
