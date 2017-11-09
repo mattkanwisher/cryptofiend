@@ -298,7 +298,8 @@ func (g *Gemini) cancelOrders(CancelBySession bool) (OrderResult, error) {
 	return response, g.SendAuthenticatedHTTPRequest("POST", path, nil, &response)
 }
 
-// GetOrderStatus returns the status for an order
+// GetOrderStatus returns information about any exchange order created via this exchange account.
+// OrderID is the exchange generated order ID.
 func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
 	request := make(map[string]interface{})
 	request["order_id"] = orderID
@@ -309,66 +310,45 @@ func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrderStatus, request, &response)
 }
 
-func (g *Gemini) GetOrder(orderIDStr string) (exchange.Order, error) {
-	orderID, err := strconv.ParseInt(orderIDStr, 10, 64)
+// GetOrder returns information about any exchange order previously created via this exchange
+// account. Unlike GetOrders() this method can retrieve information about exchange orders
+// that were cancelled.
+// OrderID is the exchange generated order ID.
+func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
+	orderIDInt, err := strconv.ParseInt(orderID, 10, 64)
 	if err != nil {
 		return exchange.Order{}, err
 	}
-	order, err := g.GetOrderStatus(orderID)
-	if err == nil {
-		return geminiOrderToExchangeOrder(order), nil
+	order, err := g.GetOrderStatus(orderIDInt)
+	if err != nil {
+		return exchange.Order{}, err
 	}
-	return exchange.Order{}, err
+	return orderToExchangeOrder(order), nil
 }
 
-func geminiOrderToExchangeOrder(geminiOrder Order) exchange.Order {
-	retOrder := exchange.Order{}
-	retOrder.OrderID = strconv.FormatInt(geminiOrder.OrderID, 10)
-	if geminiOrder.IsLive == true {
-		retOrder.Status = exchange.OrderStatusActive
-	} else if geminiOrder.IsCancelled == true {
-		retOrder.Status = exchange.OrderStatusAborted
+func orderToExchangeOrder(inOrder Order) exchange.Order {
+	outOrder := exchange.Order{}
+	outOrder.OrderID = strconv.FormatInt(inOrder.OrderID, 10)
+	if inOrder.IsLive {
+		outOrder.Status = exchange.OrderStatusActive
+	} else if inOrder.IsCancelled {
+		outOrder.Status = exchange.OrderStatusAborted
 	} else {
-		retOrder.Status = exchange.OrderStatusUnknown
+		outOrder.Status = exchange.OrderStatusUnknown
 	}
-	retOrder.FilledAmount = geminiOrder.ExecutedAmount
-	retOrder.RemainingAmount = geminiOrder.RemainingAmount
-	retOrder.Rate = geminiOrder.Price
-	retOrder.CreatedAt = geminiOrder.Timestamp
-	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(geminiOrder.Symbol)
-	retOrder.Side = exchange.OrderSide(geminiOrder.Side) //no conversion neccessary this exchange uses the word buy/sell
-	return retOrder
+	outOrder.FilledAmount = inOrder.ExecutedAmount
+	outOrder.RemainingAmount = inOrder.RemainingAmount
+	outOrder.Rate = inOrder.Price
+	outOrder.CreatedAt = inOrder.Timestamp
+	outOrder.CurrencyPair = pair.NewCurrencyPairFromString(inOrder.Symbol)
+	outOrder.Side = exchange.OrderSide(inOrder.Side) //no conversion neccessary this exchange uses the word buy/sell
+	return outOrder
 }
 
-func geminiOrdersToExchangeOrders(geminiOrders []Order) []exchange.Order {
-	ret := make([]exchange.Order, 0, len(geminiOrders))
-	for _, order := range geminiOrders {
-		retOrder := exchange.Order{}
-		retOrder.OrderID = strconv.FormatInt(order.OrderID, 10)
-
-		if order.IsLive == true {
-			retOrder.Status = exchange.OrderStatusActive
-		} else if order.IsCancelled == true {
-			retOrder.Status = exchange.OrderStatusAborted
-		} else {
-			retOrder.Status = exchange.OrderStatusUnknown
-		}
-		retOrder.FilledAmount = order.ExecutedAmount
-		retOrder.RemainingAmount = order.RemainingAmount
-		retOrder.Rate = order.Price
-		retOrder.CreatedAt = order.Timestamp
-		retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Symbol)
-		retOrder.Side = exchange.OrderSide(order.Side) //no conversion neccessary this exchange uses the word buy/sell
-
-		ret = append(ret, retOrder)
-	}
-	return ret
-}
-
-func geminiPastTradeToExchangeOrder(symbol string, geminiPastTrades []TradeHistory) []exchange.Order {
-	// TODO: handle broken/cancelled trades?
-	orders := make([]exchange.Order, 0, len(geminiPastTrades))
-	for _, trade := range geminiPastTrades {
+func tradeHistoryToExchangeOrders(symbol string, pastTrades []TradeHistory) []exchange.Order {
+	// TODO: handle broken trades?
+	orders := make([]exchange.Order, 0, len(pastTrades))
+	for _, trade := range pastTrades {
 		order := exchange.Order{}
 		order.OrderID = strconv.FormatInt(trade.OrderID, 10)
 		order.Status = exchange.OrderStatusFilled
@@ -384,6 +364,9 @@ func geminiPastTradeToExchangeOrder(symbol string, geminiPastTrades []TradeHisto
 	return orders
 }
 
+// GetOrders returns the active and filled exchange orders for this exchange account.
+// Note that the returned slice will not include cancelled exchange orders, use GetOrder()
+// to retrieve information about cancelled exchange orders.
 func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 	// Fetch active orders.
 	orders, err := g.getOrders()
@@ -391,7 +374,11 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		return nil, err
 	}
 
-	ret := geminiOrdersToExchangeOrders(orders)
+	ret := make([]exchange.Order, 0, len(orders))
+	for _, order := range orders {
+		exchangeOrder := orderToExchangeOrder(order)
+		ret = append(ret, exchangeOrder)
+	}
 
 	symbols, err := g.GetSymbols()
 	if err != nil {
@@ -406,7 +393,7 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, geminiPastTradeToExchangeOrder(symbol, trades)...)
+		ret = append(ret, tradeHistoryToExchangeOrders(symbol, trades)...)
 	}
 	return ret, nil
 }
@@ -419,7 +406,8 @@ func (g *Gemini) getOrders() ([]Order, error) {
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrders, nil, &response)
 }
 
-// GetTradeHistory returns an array of trades that have been on the exchange
+// GetTradeHistory returns an array of past trades for this exchange account.
+// Note that the past trades will not include cancelled trades.
 //
 // currencyPair - example "btcusd"
 // timestamp - [optional] Only return trades on or after this timestamp.
