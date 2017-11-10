@@ -18,6 +18,43 @@ const (
 	Spot = "SPOT"
 )
 
+// Orderbook holds the orderbook information for a currency pair and type
+type Orderbook struct {
+	Orderbook    map[pair.CurrencyItem]map[pair.CurrencyItem]map[string]Base
+	ExchangeName string
+}
+
+// CalculateTotalBids returns the total amount of bids and the total orderbook
+// bids value
+func (o *Base) CalculateTotalBids() (float64, float64) {
+	amountCollated := float64(0)
+	total := float64(0)
+	for _, x := range o.Bids {
+		amountCollated += x.Amount
+		total += x.Amount * x.Price
+	}
+	return amountCollated, total
+}
+
+// CalculateTotalAsks returns the total amount of asks and the total orderbook
+// asks value
+func (o *Base) CalculateTotalAsks() (float64, float64) {
+	amountCollated := float64(0)
+	total := float64(0)
+	for _, x := range o.Asks {
+		amountCollated += x.Amount
+		total += x.Amount * x.Price
+	}
+	return amountCollated, total
+}
+
+// Update updates the bids and asks
+func (o *Base) Update(Bids, Asks []Item) {
+	o.Bids = Bids
+	o.Asks = Asks
+	o.LastUpdated = time.Now()
+}
+
 // Stores the order books, and provides helper methods
 type Orderbooks struct {
 	m          sync.Mutex
