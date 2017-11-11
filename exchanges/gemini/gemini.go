@@ -365,9 +365,7 @@ func tradeHistoryToExchangeOrders(symbol string, pastTrades []TradeHistory) []ex
 	return orders
 }
 
-// GetOrders returns the active and filled exchange orders for this exchange account.
-// Note that the returned slice will not include cancelled exchange orders, use GetOrder()
-// to retrieve information about cancelled exchange orders.
+// GetOrders returns the active exchange orders for this exchange account.
 func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 	// Fetch active orders.
 	orders, err := g.getOrders()
@@ -379,22 +377,6 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 	for _, order := range orders {
 		exchangeOrder := orderToExchangeOrder(order)
 		ret = append(ret, exchangeOrder)
-	}
-
-	symbols, err := g.GetSymbols()
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch the past trades for each available currency pair.
-	for _, symbol := range symbols {
-		// TODO: Currently this will return at most 50 past trades, it is possible to get up to 500
-		// in one go, more than that will require multiple calls (with a timestamp set).
-		trades, err := g.GetTradeHistory(symbol, 0)
-		if err != nil {
-			return nil, err
-		}
-		ret = append(ret, tradeHistoryToExchangeOrders(symbol, trades)...)
 	}
 	return ret, nil
 }
