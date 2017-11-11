@@ -334,8 +334,9 @@ func orderToExchangeOrder(inOrder Order) exchange.Order {
 	} else if inOrder.IsCancelled {
 		outOrder.Status = exchange.OrderStatusAborted
 	} else {
-		outOrder.Status = exchange.OrderStatusUnknown
+		outOrder.Status = exchange.OrderStatusFilled
 	}
+	outOrder.Amount = inOrder.OriginalAmount
 	outOrder.FilledAmount = inOrder.ExecutedAmount
 	outOrder.RemainingAmount = inOrder.RemainingAmount
 	outOrder.Rate = inOrder.Price
