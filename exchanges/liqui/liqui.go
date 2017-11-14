@@ -211,18 +211,18 @@ func (l *Liqui) GetOrder(orderID string) (exchange.Order, error) {
 	panic("unimplemented")
 }
 
+// Returns the ID of the new exchange order, or an empty string if the order was filled immediately.
 func (l *Liqui) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
 	o64, err := l.Trade(string(symbol.Display("_", true)), string(side), amount, price)
 	if err != nil {
 		return "", err
 	}
-	orderID := strconv.FormatInt(o64, 10)
 	if o64 == 0 {
-		// if for some reason they can automatically match it will return zero
-		log.Warn("Fully matched already!!! TODO:")
-
+		// If the order is filled immediately Liqui may not bother generating an ID for it and will
+		// just return zero.
+		return "", nil
 	}
-	return orderID, nil
+	return strconv.FormatInt(o64, 10), nil
 }
 
 func (l *Liqui) GetOrders() ([]exchange.Order, error) {

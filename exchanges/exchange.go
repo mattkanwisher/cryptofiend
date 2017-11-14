@@ -110,9 +110,12 @@ type IBotExchange interface {
 	GetAuthenticatedAPISupport() bool
 }
 
-//Extended bot itterface for new methods
+// Extended bot interface for new methods
 type IBotExchangeEx interface {
 	IBotExchange
+	// NewOrder creates a new order on the exchange.
+	// Returns the ID of the new exchange order, or an empty string if the order was filled
+	// immediately but no ID was generated.
 	NewOrder(symbol pair.CurrencyPair, amount, price float64, side OrderSide, orderType OrderType) (string, error)
 	CancelOrder(OrderID string) error
 	GetOrder(orderID string) (Order, error)
