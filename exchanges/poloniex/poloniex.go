@@ -92,6 +92,11 @@ func (p *Poloniex) Setup(exch config.ExchangeConfig) {
 	}
 }
 
+// GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
+func (p *Poloniex) GetLimits() map[pair.CurrencyItem]exchange.LimitsInfo {
+	return nil
+}
+
 func (p *Poloniex) GetFee() float64 {
 	return p.Fee
 }
