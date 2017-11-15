@@ -440,7 +440,28 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 }
 
 func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
-	panic("unimplemented")
+	//UGH this really messes stuff up
+	return nil, errors.New("not supported")
+}
+
+func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, currenyPair string) *exchange.Order {
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
+
+	//All orders that get returned are active
+	//TODO how to handle canceled orders
+	retOrder.Status = exchange.OrderStatusActive
+
+	//TODO: verify total is actually correct, its the total filled??
+	retOrder.FilledAmount = order.Total
+	retOrder.RemainingAmount = order.Amount - order.Total
+	retOrder.Amount = order.Amount
+	retOrder.Rate = order.Rate
+	retOrder.CreatedAt = order.Date.Unix()
+	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(currenyPair)
+	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+
+	return retOrder
 }
 
 func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
@@ -453,24 +474,7 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 
 	for currenyPair, orders := range activeorders.Data {
 		for _, order := range orders {
-			retOrder := &exchange.Order{}
-			retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
-
-			//All orders that get returned are active
-			//TODO how to handle canceled orders
-			retOrder.Status = exchange.OrderStatusActive
-			if err != nil {
-				continue
-			}
-			//TODO: verify total is actually correct, its the total filled??
-			retOrder.FilledAmount = order.Total
-			retOrder.RemainingAmount = order.Amount - order.Total
-			retOrder.Amount = order.Amount
-			retOrder.Rate = order.Rate
-			retOrder.CreatedAt = order.Date.Unix()
-			retOrder.CurrencyPair = pair.NewCurrencyPairFromString(currenyPair)
-			retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
-
+			retOrder := p.convertOrderToExchangeOrder(order, currenyPair)
 			ret = append(ret, retOrder)
 		}
 	}

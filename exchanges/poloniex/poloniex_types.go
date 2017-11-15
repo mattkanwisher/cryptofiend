@@ -124,7 +124,7 @@ type PoloniexOrder struct {
 }
 
 type PoloniexOpenOrdersResponseAll struct {
-	Data map[string][]PoloniexOrder
+	Data map[string][]*PoloniexOrder
 }
 
 type PoloniexOpenOrdersResponse struct {
