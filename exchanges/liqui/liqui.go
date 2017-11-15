@@ -240,7 +240,19 @@ func (l *Liqui) convertOrderToExchangeOrder(orderID string, order OrderInfo) exc
 
 	//All orders that get returned are active
 	//TODO how to handle canceled orders
-	retOrder.Status = exchange.OrderStatusActive
+	if order.Status == 0 {
+		retOrder.Status = exchange.OrderStatusActive
+	} else if order.Status == 1 {
+		//Executed
+		retOrder.Status = exchange.OrderStatusFilled
+	} else if order.Status == 2 {
+		//Canceled
+		retOrder.Status = exchange.OrderStatusAborted
+	} else if order.Status == 3 {
+		//Canceled by partially executed
+		//We dont have this concept internally
+		retOrder.Status = exchange.OrderStatusAborted
+	}
 
 	// <--- only /get_orders will have a start amount, active orders doesn't
 	if order.StartAmount != 0 {
