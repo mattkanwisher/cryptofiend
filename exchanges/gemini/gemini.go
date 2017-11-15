@@ -329,11 +329,11 @@ func (g *Gemini) cancelOrders(CancelBySession bool) (OrderResult, error) {
 
 // GetOrderStatus returns information about any exchange order created via this exchange account.
 // OrderID is the exchange generated order ID.
-func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
+func (g *Gemini) GetOrderStatus(orderID int64) (*Order, error) {
 	request := make(map[string]interface{})
 	request["order_id"] = orderID
 
-	response := Order{}
+	response := &Order{}
 
 	return response,
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrderStatus, request, &response)
@@ -343,20 +343,20 @@ func (g *Gemini) GetOrderStatus(orderID int64) (Order, error) {
 // account. Unlike GetOrders() this method can retrieve information about exchange orders
 // that were cancelled.
 // OrderID is the exchange generated order ID.
-func (g *Gemini) GetOrder(orderID string) (exchange.Order, error) {
+func (g *Gemini) GetOrder(orderID string) (*exchange.Order, error) {
 	orderIDInt, err := strconv.ParseInt(orderID, 10, 64)
 	if err != nil {
-		return exchange.Order{}, err
+		return nil, err
 	}
 	order, err := g.GetOrderStatus(orderIDInt)
 	if err != nil {
-		return exchange.Order{}, err
+		return nil, err
 	}
 	return orderToExchangeOrder(order), nil
 }
 
-func orderToExchangeOrder(inOrder Order) exchange.Order {
-	outOrder := exchange.Order{}
+func orderToExchangeOrder(inOrder *Order) *exchange.Order {
+	outOrder := &exchange.Order{}
 	outOrder.OrderID = strconv.FormatInt(inOrder.OrderID, 10)
 	if inOrder.IsLive {
 		outOrder.Status = exchange.OrderStatusActive
@@ -395,14 +395,14 @@ func tradeHistoryToExchangeOrders(symbol string, pastTrades []TradeHistory) []ex
 }
 
 // GetOrders returns the active exchange orders for this exchange account.
-func (g *Gemini) GetOrders() ([]exchange.Order, error) {
+func (g *Gemini) GetOrders() ([]*exchange.Order, error) {
 	// Fetch active orders.
 	orders, err := g.getOrders()
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make([]exchange.Order, 0, len(orders))
+	ret := make([]*exchange.Order, 0, len(orders))
 	for _, order := range orders {
 		exchangeOrder := orderToExchangeOrder(order)
 		ret = append(ret, exchangeOrder)
@@ -411,8 +411,8 @@ func (g *Gemini) GetOrders() ([]exchange.Order, error) {
 }
 
 // GetOrders returns active orders in the market
-func (g *Gemini) getOrders() ([]Order, error) {
-	response := []Order{}
+func (g *Gemini) getOrders() ([]*Order, error) {
+	response := []*Order{}
 
 	return response,
 		g.SendAuthenticatedHTTPRequest("POST", geminiOrders, nil, &response)

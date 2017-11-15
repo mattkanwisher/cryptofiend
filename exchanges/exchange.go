@@ -124,8 +124,8 @@ type IBotExchangeEx interface {
 	// immediately but no ID was generated.
 	NewOrder(symbol pair.CurrencyPair, amount, price float64, side OrderSide, orderType OrderType) (string, error)
 	CancelOrder(OrderID string) error
-	GetOrder(orderID string) (Order, error)
-	GetOrders() ([]Order, error)
+	GetOrder(orderID string) (*Order, error)
+	GetOrders() ([]*Order, error)
 	// Returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
 	GetLimits() map[pair.CurrencyItem]*LimitsInfo
 }

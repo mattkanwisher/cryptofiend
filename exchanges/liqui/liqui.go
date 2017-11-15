@@ -194,28 +194,28 @@ func (l *Liqui) Trade(pair, orderType string, amount, price float64) (int64, err
 	return result.OrderID, l.SendAuthenticatedHTTPRequest(liquiTrade, req, &result)
 }
 
-// GetActiveOrders returns the list of your active orders.
-func (l *Liqui) GetActiveOrders(pair string) (map[string]OrderInfo, error) {
+// getActiveOrders returns the list of your active orders.
+func (l *Liqui) GetActiveOrders(pair string) (map[string]*OrderInfo, error) {
 	req := url.Values{}
 	req.Add("pair", pair)
 
-	var result map[string]OrderInfo
+	var result map[string]*OrderInfo
 	return result, l.SendAuthenticatedHTTPRequest(liquiActiveOrders, req, &result)
 }
 
 // GetOrderInfo returns the information on particular order.
-func (l *Liqui) GetOrderInfo(orderID string) (map[string]OrderInfo, error) {
+func (l *Liqui) GetOrderInfo(orderID string) (map[string]*OrderInfo, error) {
 	req := url.Values{}
 	req.Add("order_id", orderID)
 
-	var result map[string]OrderInfo
+	var result map[string]*OrderInfo
 	return result, l.SendAuthenticatedHTTPRequest(liquiOrderInfo, req, &result)
 }
 
-func (l *Liqui) GetOrder(orderID string) (exchange.Order, error) {
+func (l *Liqui) GetOrder(orderID string) (*exchange.Order, error) {
 	orderinfo, err := l.GetOrderInfo(orderID)
 	if err != nil {
-		return exchange.Order{}, err
+		return nil, err
 	}
 	return l.convertOrderToExchangeOrder(orderID, orderinfo[orderID]), nil
 }
@@ -234,8 +234,8 @@ func (l *Liqui) NewOrder(symbol pair.CurrencyPair, amount, price float64, side e
 	return strconv.FormatInt(o64, 10), nil
 }
 
-func (l *Liqui) convertOrderToExchangeOrder(orderID string, order OrderInfo) exchange.Order {
-	retOrder := exchange.Order{}
+func (l *Liqui) convertOrderToExchangeOrder(orderID string, order *OrderInfo) *exchange.Order {
+	retOrder := &exchange.Order{}
 	retOrder.OrderID = orderID
 
 	//All orders that get returned are active
@@ -267,8 +267,8 @@ func (l *Liqui) convertOrderToExchangeOrder(orderID string, order OrderInfo) exc
 	return retOrder
 }
 
-func (l *Liqui) GetOrders() ([]exchange.Order, error) {
-	ret := []exchange.Order{}
+func (l *Liqui) GetOrders() ([]*exchange.Order, error) {
+	ret := []*exchange.Order{}
 	//todo blank should be  "all pairs"
 	activeorders, err := l.GetActiveOrders("")
 	if err != nil {

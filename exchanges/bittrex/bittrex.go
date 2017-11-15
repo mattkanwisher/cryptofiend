@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -15,6 +14,8 @@ import (
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -229,8 +230,31 @@ func (b *Bittrex) CancelOrder(uuid string) error {
 	return err
 }
 
-func (b *Bittrex) GetOrder(orderID string) (exchange.Order, error) {
-	panic("unimplemented")
+func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
+	order, err := b.getOrder(orderID)
+	if err != nil {
+		return nil, err
+	}
+	return b.convertOrderToExchangeOrder(orderID, order)
+}
+
+func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order Order) (*exchange.Order, error) {
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = order.OrderUUID
+
+	//All orders that get returned are active
+	//TODO how to handle canceled orders
+	retOrder.Status = exchange.OrderStatusActive
+
+	retOrder.FilledAmount = order.Quantity - order.QuantityRemaining
+	retOrder.RemainingAmount = order.QuantityRemaining
+	retOrder.Amount = order.Quantity
+	retOrder.Rate = order.Price //PricePerunit ?????
+	retOrder.CreatedAt = order.Opened.Unix()
+	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Exchange)
+	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+
+	return retOrder, nil
 }
 
 func (b *Bittrex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
@@ -250,8 +274,8 @@ func (b *Bittrex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side
 	return "", errors.New("invalid data trying to make a new order on bittrex")
 }
 
-func (b *Bittrex) GetOrders() ([]exchange.Order, error) {
-	ret := []exchange.Order{}
+func (b *Bittrex) GetOrders() ([]*exchange.Order, error) {
+	ret := []*exchange.Order{}
 
 	//TODO it looks like you want to use /account/getorderhistory
 	// instead of /market/getopenorders  since it should have more data but we need to test that
@@ -260,24 +284,12 @@ func (b *Bittrex) GetOrders() ([]exchange.Order, error) {
 		return ret, err
 	}
 	for _, order := range orders {
-		retOrder := exchange.Order{}
-		retOrder.OrderID = order.OrderUUID
-
-		//All orders that get returned are active
-		//TODO how to handle canceled orders
-		retOrder.Status = exchange.OrderStatusActive
-		if err != nil {
-			continue
+		retOrder, err := b.convertOrderToExchangeOrder(order.OrderUUID, order)
+		if err == nil {
+			ret = append(ret, retOrder)
+		} else {
+			log.WithField("orderID", order.OrderUUID).WithError(err).Error("Failed converting order")
 		}
-		retOrder.FilledAmount = order.Quantity - order.QuantityRemaining
-		retOrder.RemainingAmount = order.QuantityRemaining
-		retOrder.Amount = order.Quantity
-		retOrder.Rate = order.Price //PricePerunit ?????
-		retOrder.CreatedAt = order.Opened.Unix()
-		retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Exchange)
-		retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
-
-		ret = append(ret, retOrder)
 	}
 	return ret, nil
 }

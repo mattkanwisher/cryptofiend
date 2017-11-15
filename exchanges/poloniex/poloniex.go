@@ -439,12 +439,12 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 	return result, nil
 }
 
-func (p *Poloniex) GetOrder(orderID string) (exchange.Order, error) {
+func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	panic("unimplemented")
 }
 
-func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
-	ret := []exchange.Order{}
+func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
+	ret := []*exchange.Order{}
 
 	activeorders, err := p.GetAllOpenOrders()
 	if err != nil {
@@ -453,7 +453,7 @@ func (p *Poloniex) GetOrders() ([]exchange.Order, error) {
 
 	for currenyPair, orders := range activeorders.Data {
 		for _, order := range orders {
-			retOrder := exchange.Order{}
+			retOrder := &exchange.Order{}
 			retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
 
 			//All orders that get returned are active
