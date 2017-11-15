@@ -195,25 +195,29 @@ func (l *Liqui) Trade(pair, orderType string, amount, price float64) (int64, err
 }
 
 // GetActiveOrders returns the list of your active orders.
-func (l *Liqui) GetActiveOrders(pair string) (map[string]ActiveOrders, error) {
+func (l *Liqui) GetActiveOrders(pair string) (map[string]OrderInfo, error) {
 	req := url.Values{}
 	req.Add("pair", pair)
 
-	var result map[string]ActiveOrders
+	var result map[string]OrderInfo
 	return result, l.SendAuthenticatedHTTPRequest(liquiActiveOrders, req, &result)
 }
 
 // GetOrderInfo returns the information on particular order.
-func (l *Liqui) GetOrderInfo(OrderID int64) (map[string]OrderInfo, error) {
+func (l *Liqui) GetOrderInfo(orderID string) (map[string]OrderInfo, error) {
 	req := url.Values{}
-	req.Add("order_id", strconv.FormatInt(OrderID, 10))
+	req.Add("order_id", orderID)
 
 	var result map[string]OrderInfo
 	return result, l.SendAuthenticatedHTTPRequest(liquiOrderInfo, req, &result)
 }
 
 func (l *Liqui) GetOrder(orderID string) (exchange.Order, error) {
-	panic("unimplemented")
+	orderinfo, err := l.GetOrderInfo(orderID)
+	if err != nil {
+		return exchange.Order{}, err
+	}
+	return l.convertOrderToExchangeOrder(orderID, orderinfo[orderID]), nil
 }
 
 // Returns the ID of the new exchange order, or an empty string if the order was filled immediately.
@@ -230,6 +234,27 @@ func (l *Liqui) NewOrder(symbol pair.CurrencyPair, amount, price float64, side e
 	return strconv.FormatInt(o64, 10), nil
 }
 
+func (l *Liqui) convertOrderToExchangeOrder(orderID string, order OrderInfo) exchange.Order {
+	retOrder := exchange.Order{}
+	retOrder.OrderID = orderID
+
+	//All orders that get returned are active
+	//TODO how to handle canceled orders
+	retOrder.Status = exchange.OrderStatusActive
+
+	// <--- only /get_orders will have a start amount, active orders doesn't
+	if order.StartAmount != 0 {
+		retOrder.FilledAmount = order.StartAmount - order.Amount
+		retOrder.RemainingAmount = order.Amount
+	}
+	retOrder.Amount = order.Amount
+	retOrder.Rate = order.Rate
+	retOrder.CreatedAt = order.TimestampCreated
+	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Pair)
+	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+	return retOrder
+}
+
 func (l *Liqui) GetOrders() ([]exchange.Order, error) {
 	ret := []exchange.Order{}
 	//todo blank should be  "all pairs"
@@ -238,24 +263,7 @@ func (l *Liqui) GetOrders() ([]exchange.Order, error) {
 		return ret, err
 	}
 	for orderID, order := range activeorders {
-		retOrder := exchange.Order{}
-		retOrder.OrderID = orderID
-
-		//All orders that get returned are active
-		//TODO how to handle canceled orders
-		retOrder.Status = exchange.OrderStatusActive
-		if err != nil {
-			continue
-		}
-		//TODO: this can only be gotten from using the GetORder method
-		//retOrder.FilledAmount = order.StartAmount - order.Amount
-		//retOrder.RemainingAmount = order.Amount
-		retOrder.Amount = order.Amount
-		retOrder.Rate = order.Rate
-		retOrder.CreatedAt = order.TimestampCreated
-		retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Pair)
-		retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
-
+		retOrder := l.convertOrderToExchangeOrder(orderID, order)
 		ret = append(ret, retOrder)
 	}
 	return ret, nil

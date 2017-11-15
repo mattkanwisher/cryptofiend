@@ -57,30 +57,20 @@ type AccountInfo struct {
 	OpenOrders       int     `json:"open_orders"`
 }
 
-// ActiveOrders holds active order information
-type ActiveOrders struct {
-	Pair             string  `json:"pair"`
-	Type             string  `json:"sell"`
-	Amount           float64 `json:"amount"`
-	Rate             float64 `json:"rate"`
-	TimestampCreated int64 `json:"time_created"`
-	Status           int     `json:"status"`
-}
-
 // OrderInfo holds specific order information
 type OrderInfo struct {
 	Pair             string  `json:"pair"`
 	Type             string  `json:"sell"`
-	StartAmount      float64 `json:"start_amount"`
+	StartAmount      float64 `json:"start_amount"` //Only finished orders have start amount
 	Amount           float64 `json:"amount"`
 	Rate             float64 `json:"rate"`
-	TimestampCreated float64 `json:"time_created"`
+	TimestampCreated int64   `json:"time_created"`
 	Status           int     `json:"status"`
 }
 
 // CancelOrder holds cancelled order information
 type CancelOrder struct {
-	OrderID int64            `json:"order_id"`
+	OrderID int64              `json:"order_id"`
 	Funds   map[string]float64 `json:"funds"`
 }
 
@@ -88,7 +78,7 @@ type CancelOrder struct {
 type Trade struct {
 	Received float64            `json:"received"`
 	Remains  float64            `json:"remains"`
-	OrderID  int64            `json:"order_id"`
+	OrderID  int64              `json:"order_id"`
 	Funds    map[string]float64 `json:"funds"`
 }
 
@@ -98,7 +88,7 @@ type TradeHistory struct {
 	Type      string  `json:"type"`
 	Amount    float64 `json:"amount"`
 	Rate      float64 `json:"rate"`
-	OrderID   int64 `json:"order_id"`
+	OrderID   int64   `json:"order_id"`
 	MyOrder   int     `json:"is_your_order"`
 	Timestamp float64 `json:"timestamp"`
 }
