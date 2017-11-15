@@ -127,7 +127,7 @@ type IBotExchangeEx interface {
 	GetOrder(orderID string) (Order, error)
 	GetOrders() ([]Order, error)
 	// Returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-	GetLimits() map[pair.CurrencyItem]LimitsInfo
+	GetLimits() map[pair.CurrencyItem]*LimitsInfo
 }
 
 // SetAssetTypes checks the exchange asset types (whether it supports SPOT,

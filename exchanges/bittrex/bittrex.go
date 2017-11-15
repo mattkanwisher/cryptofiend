@@ -101,7 +101,7 @@ func (b *Bittrex) Setup(exch config.ExchangeConfig) {
 }
 
 // GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-func (b *Bittrex) GetLimits() map[pair.CurrencyItem]exchange.LimitsInfo {
+func (b *Bittrex) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return nil
 }
 

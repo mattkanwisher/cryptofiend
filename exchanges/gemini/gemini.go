@@ -148,18 +148,18 @@ func (g *Gemini) Setup(exch config.ExchangeConfig) {
 // btcusd    0.00001 BTC (1e-5)	  0.00000001 BTC (1e-8)	  0.01 USD
 // ethusd    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.01 USD
 // ethbtc    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.00001 BTC (1e-5)
-var limitsInfo = map[pair.CurrencyItem]exchange.LimitsInfo{
-	"BTCUSD": exchange.LimitsInfo{
+var limitsInfo = map[pair.CurrencyItem]*exchange.LimitsInfo{
+	"BTCUSD": &exchange.LimitsInfo{
 		PriceDecimalPlaces:  2,       // USD
 		AmountDecimalPlaces: 8,       // BTC
 		MinAmount:           0.00001, // 1e-5 BTC
 	},
-	"ETHUSD": exchange.LimitsInfo{
+	"ETHUSD": &exchange.LimitsInfo{
 		PriceDecimalPlaces:  2,     // USD
 		AmountDecimalPlaces: 6,     // ETH
 		MinAmount:           0.001, // 1e-3 ETH
 	},
-	"ETHBTC": exchange.LimitsInfo{
+	"ETHBTC": &exchange.LimitsInfo{
 		PriceDecimalPlaces:  5,     // BTC
 		AmountDecimalPlaces: 6,     // ETH
 		MinAmount:           0.001, // 1e-3 ETH
@@ -167,7 +167,7 @@ var limitsInfo = map[pair.CurrencyItem]exchange.LimitsInfo{
 }
 
 // GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-func (g *Gemini) GetLimits() map[pair.CurrencyItem]exchange.LimitsInfo {
+func (g *Gemini) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return limitsInfo
 }
 
