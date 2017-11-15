@@ -235,7 +235,13 @@ func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b.convertOrderToExchangeOrder(orderID, order)
+	eorder, err := b.convertOrderToExchangeOrder(orderID, order)
+	//You can only find out if its canceled if you call /getorder
+	if order.IsOpen == false {
+		eorder.Status = exchange.OrderStatusAborted
+	}
+
+	return eorder, err
 }
 
 func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order Order) (*exchange.Order, error) {
@@ -246,6 +252,14 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order Order) (*exc
 	//TODO how to handle canceled orders
 	retOrder.Status = exchange.OrderStatusActive
 
+	//it seems if you call /market/getopenorders
+	if len(order.Closed) > 0 {
+		if order.CancelInitiated == true {
+			retOrder.Status = exchange.OrderStatusAborted
+		} else {
+			retOrder.Status = exchange.OrderStatusFilled
+		}
+	}
 	retOrder.FilledAmount = order.Quantity - order.QuantityRemaining
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
