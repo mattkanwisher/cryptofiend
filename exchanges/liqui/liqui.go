@@ -85,7 +85,18 @@ func (l *Liqui) Setup(exch config.ExchangeConfig) {
 
 // GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
 func (l *Liqui) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
-	return nil
+	retLimits := make(map[pair.CurrencyItem]*exchange.LimitsInfo)
+	//Assume .Run has already been called
+	for pairval, info := range l.Info.Pairs {
+		limit := &exchange.LimitsInfo{}
+		limit.PriceDecimalPlaces = int32(info.DecimalPlaces)
+		limit.AmountDecimalPlaces = int32(info.DecimalPlaces)
+		limit.MinAmount = info.MinAmount //todo maybe use decimal type
+
+		retLimits[pair.CurrencyItem(pairval)] = limit
+	}
+
+	return retLimits
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.
@@ -110,7 +121,6 @@ func (l *Liqui) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairI
 
 // GetFee returns a fee for a specific currency
 func (l *Liqui) GetFee(currency string) (float64, error) {
-	log.Println(l.Info.Pairs)
 	val, ok := l.Info.Pairs[common.StringToLower(currency)]
 	if !ok {
 		return 0, errors.New("currency does not exist")
