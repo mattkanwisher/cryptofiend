@@ -367,6 +367,24 @@ func FormatExchangeCurrency(exchName string, p pair.CurrencyPair) pair.CurrencyI
 		exch.RequestCurrencyPairFormat.Uppercase)
 }
 
+func FormatExchangeCurrencyPair(exchName string, p pair.CurrencyPair) pair.CurrencyPair {
+	cfg := config.GetConfig()
+	exch, _ := cfg.GetExchangeConfig(exchName)
+
+	if exch.RequestCurrencyPairFormat.Uppercase {
+		return pair.CurrencyPair{
+			Delimiter:      exch.RequestCurrencyPairFormat.Delimiter,
+			FirstCurrency:  p.FirstCurrency.Upper(),
+			SecondCurrency: p.SecondCurrency.Upper(),
+		}
+	}
+	return pair.CurrencyPair{
+		Delimiter:      exch.RequestCurrencyPairFormat.Delimiter,
+		FirstCurrency:  p.FirstCurrency.Lower(),
+		SecondCurrency: p.SecondCurrency.Lower(),
+	}
+}
+
 // FormatCurrency is a method that formats and returns a currency pair
 // based on the user currency display preferences
 func FormatCurrency(p pair.CurrencyPair) pair.CurrencyItem {
@@ -456,5 +474,5 @@ func (e *Base) UpdateAvailableCurrencies(exchangeProducts []string, force bool) 
 
 // GetOrderbookSimple returns orderbook base on the currency pair, does not update exchange
 func (e *Base) GetOrderbookSimple(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
-	return e.Orderbooks.GetOrderbook(e.GetName(), p, assetType)
+	return e.Orderbooks.GetOrderbook(e.GetName(), FormatExchangeCurrencyPair(e.GetName(), p), assetType)
 }
