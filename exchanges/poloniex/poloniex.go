@@ -67,6 +67,7 @@ func (p *Poloniex) SetDefaults() {
 	p.ConfigCurrencyPairFormat.Uppercase = true
 	p.AssetTypes = []string{ticker.Spot}
 	p.Orderbooks = orderbook.Init()
+	p.Orderbooks = orderbook.Init()
 }
 
 func (p *Poloniex) Setup(exch config.ExchangeConfig) {

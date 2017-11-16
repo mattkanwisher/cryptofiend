@@ -12,6 +12,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/config"
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 	log "github.com/sirupsen/logrus"
 )
@@ -56,6 +57,7 @@ func (l *Liqui) SetDefaults() {
 	l.ConfigCurrencyPairFormat.Delimiter = "_"
 	l.ConfigCurrencyPairFormat.Uppercase = true
 	l.AssetTypes = []string{ticker.Spot}
+	l.Orderbooks = orderbook.Init()
 }
 
 // Setup sets exchange configuration parameters for liqui
