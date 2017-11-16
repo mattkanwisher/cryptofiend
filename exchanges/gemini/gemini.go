@@ -171,10 +171,28 @@ func (g *Gemini) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return limitsInfo
 }
 
+var currencyPairs = map[pair.CurrencyItem]*exchange.CurrencyPairInfo{
+	"BTCUSD": &exchange.CurrencyPairInfo{
+		Currency:           pair.NewCurrencyPair("BTC", "USD"),
+		FirstCurrencyName:  "Bitcoin",
+		SecondCurrencyName: "US Dollar",
+	},
+	"ETHUSD": &exchange.CurrencyPairInfo{
+		Currency:           pair.NewCurrencyPair("ETH", "USD"),
+		FirstCurrencyName:  "Etherium",
+		SecondCurrencyName: "US Dolar",
+	},
+	"ETHBTC": &exchange.CurrencyPairInfo{
+		Currency:           pair.NewCurrencyPair("ETH", "BTC"),
+		FirstCurrencyName:  "Etherium",
+		SecondCurrencyName: "Bitcoin",
+	},
+}
+
 // Returns currency pairs that can be used by the exchange account associated with this bot.
 // Use FormatExchangeCurrency to get the right key.
 func (g *Gemini) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
-	return nil
+	return currencyPairs
 }
 
 // GetSymbols returns all available symbols for trading
