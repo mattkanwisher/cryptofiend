@@ -125,6 +125,7 @@ type IBotExchange interface {
 // Extended bot interface for new methods
 type IBotExchangeEx interface {
 	IBotExchange
+	Run()
 	// NewOrder creates a new order on the exchange.
 	// Returns the ID of the new exchange order, or an empty string if the order was filled
 	// immediately but no ID was generated.
