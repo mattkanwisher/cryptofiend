@@ -91,7 +91,21 @@ func (l *Liqui) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 // Returns currency pairs that can be used by the exchange account associated with this bot.
 // Use FormatExchangeCurrency to get the right key.
 func (l *Liqui) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
-	return nil
+	info, err := l.GetInfo()
+	if err != nil {
+		log.Error(err)
+		return nil
+	}
+
+	currencies := map[pair.CurrencyItem]*exchange.CurrencyPairInfo{}
+	for currency, currencyInfo := range info.Pairs {
+		if currencyInfo.Hidden == 0 {
+			p := pair.NewCurrencyPairDelimiter(currency, "_")
+			k := exchange.FormatExchangeCurrency(l.Name, p)
+			currencies[k] = &exchange.CurrencyPairInfo{Currency: p}
+		}
+	}
+	return currencies
 }
 
 // GetFee returns a fee for a specific currency
