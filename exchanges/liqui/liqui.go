@@ -87,13 +87,8 @@ func (l *Liqui) Setup(exch config.ExchangeConfig) {
 
 // GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
 func (l *Liqui) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
-	info, err := l.GetInfo()
-	if err != nil {
-		log.Error(err)
-		return nil
-	}
 	limits := make(map[pair.CurrencyItem]*exchange.LimitsInfo)
-	for currency, currencyInfo := range info.Pairs {
+	for currency, currencyInfo := range l.Info.Pairs {
 		limit := &exchange.LimitsInfo{
 			PriceDecimalPlaces:  int32(currencyInfo.DecimalPlaces),
 			AmountDecimalPlaces: int32(currencyInfo.DecimalPlaces),
