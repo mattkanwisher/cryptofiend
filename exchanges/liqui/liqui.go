@@ -246,7 +246,8 @@ func (l *Liqui) GetOrder(orderID string) (*exchange.Order, error) {
 
 // Returns the ID of the new exchange order, or an empty string if the order was filled immediately.
 func (l *Liqui) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	o64, err := l.Trade(string(symbol.Display("_", true)), string(side), amount, price)
+	exchSymbol := exchange.FormatExchangeCurrency(l.Name, symbol).String()
+	o64, err := l.Trade(exchSymbol, string(side), amount, price)
 	if err != nil {
 		return "", err
 	}
