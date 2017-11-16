@@ -76,6 +76,12 @@ type LimitsInfo struct {
 	MinAmount           float64
 }
 
+type CurrencyPairInfo struct {
+	Currency           pair.CurrencyPair
+	FirstCurrencyName  string
+	SecondCurrencyName string
+}
+
 // Base stores the individual exchange information
 type Base struct {
 	Name                        string
@@ -128,6 +134,9 @@ type IBotExchangeEx interface {
 	GetOrders() ([]*Order, error)
 	// Returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
 	GetLimits() map[pair.CurrencyItem]*LimitsInfo
+	// Returns currency pairs that can be used by the exchange account associated with this bot.
+	// Use FormatExchangeCurrency to get the right key.
+	GetCurrencyPairs() map[pair.CurrencyItem]*CurrencyPairInfo
 }
 
 // SetAssetTypes checks the exchange asset types (whether it supports SPOT,

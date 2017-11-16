@@ -171,6 +171,12 @@ func (g *Gemini) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return limitsInfo
 }
 
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (g *Gemini) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return nil
+}
+
 // GetSymbols returns all available symbols for trading
 func (g *Gemini) GetSymbols() ([]string, error) {
 	symbols := []string{}

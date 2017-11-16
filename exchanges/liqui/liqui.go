@@ -88,6 +88,12 @@ func (l *Liqui) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return nil
 }
 
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (l *Liqui) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return nil
+}
+
 // GetFee returns a fee for a specific currency
 func (l *Liqui) GetFee(currency string) (float64, error) {
 	log.Println(l.Info.Pairs)

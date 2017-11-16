@@ -97,6 +97,12 @@ func (p *Poloniex) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return nil
 }
 
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (p *Poloniex) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return nil
+}
+
 func (p *Poloniex) GetFee() float64 {
 	return p.Fee
 }

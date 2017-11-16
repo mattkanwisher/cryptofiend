@@ -106,6 +106,12 @@ func (b *Bittrex) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
 	return nil
 }
 
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (b *Bittrex) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return nil
+}
+
 // GetMarkets is used to get the open and available trading markets at Bittrex
 // along with other meta data.
 func (b *Bittrex) GetMarkets() ([]Market, error) {
