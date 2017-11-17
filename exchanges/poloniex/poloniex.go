@@ -52,6 +52,7 @@ const (
 
 type Poloniex struct {
 	exchange.Base
+	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 }
 
 func (p *Poloniex) SetDefaults() {
@@ -100,7 +101,7 @@ func (p *Poloniex) GetLimits() exchange.ILimits {
 // Returns currency pairs that can be used by the exchange account associated with this bot.
 // Use FormatExchangeCurrency to get the right key.
 func (p *Poloniex) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
-	return nil
+	return p.currencyPairs
 }
 
 func (p *Poloniex) GetFee() float64 {

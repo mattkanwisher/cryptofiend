@@ -26,6 +26,18 @@ func (p *Poloniex) Run() {
 	if p.Websocket {
 		go p.WebsocketClient()
 	}
+
+	ticker, err := p.GetTicker()
+	if (err != nil) && p.Verbose {
+		log.Printf("failed to ticker for %s", p.GetName())
+	}
+	p.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(ticker))
+	for currencyStr := range ticker {
+		currencyPair := pair.NewCurrencyPairDelimiter(currencyStr, "_")
+		p.currencyPairs[pair.CurrencyItem(currencyStr)] = &exchange.CurrencyPairInfo{
+			Currency: currencyPair,
+		}
+	}
 }
 
 // UpdateTicker updates and returns the ticker for a currency pair
