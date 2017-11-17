@@ -14,6 +14,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,6 +29,7 @@ const (
 	POLONIEX_DEPOSITS_WITHDRAWALS   = "returnDepositsWithdrawals"
 	POLONIEX_ORDERS                 = "returnOpenOrders"
 	POLONIEX_TRADE_HISTORY          = "returnTradeHistory"
+	POLONIEX_ORDER_TRADES           = "returnOrderTrades"
 	POLONIEX_ORDER_BUY              = "buy"
 	POLONIEX_ORDER_SELL             = "sell"
 	POLONIEX_ORDER_CANCEL           = "cancelOrder"
@@ -421,6 +423,19 @@ func (p *Poloniex) GetAuthenticatedTradeHistory(currency, start, end string) (in
 	}
 }
 
+func (p *Poloniex) GetOrderTrades(orderID string) (PoloniexAuthentictedOrderTradesResponse, error) {
+	result := PoloniexAuthentictedOrderTradesResponse{}
+	values := url.Values{}
+	values.Set("orderNumber", orderID)
+	err := p.SendAuthenticatedHTTPRequest("POST", POLONIEX_ORDER_TRADES, values, &result.Data)
+
+	if err != nil {
+		return result, err
+	}
+
+	return result, nil
+}
+
 func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, fillOrKill bool, orderType exchange.OrderSide) (PoloniexOrderResponse, error) {
 	result := PoloniexOrderResponse{}
 	values := url.Values{}
@@ -447,8 +462,40 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 }
 
 func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
-	//UGH this really messes stuff up
-	return nil, errors.New("not supported")
+	response, err := p.GetOrderTrades(orderID)
+	// TODO: figure out what kind of errors are returned when the order isn't found vs there are
+	// no trades for the order... the former error we should propagate to the caller, the latter
+	// should be swallowed.
+	if err != nil {
+		return nil, err
+	}
+
+	var currencyPair pair.CurrencyPair
+	var side exchange.OrderSide
+	var rate float64
+	filledAmount := decimal.Zero
+	for i, trade := range response.Data {
+		// TODO: convert currency pair string to currency pair struct
+		// currencyPair = trade.CurrencyPair
+		// TODO: compute the average rate of all trades
+		if i == 0 {
+			side = exchange.OrderSide(trade.Type)
+		}
+		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Total))
+	}
+
+	orderFilledAmount, _ := filledAmount.Float64()
+	order := &exchange.Order{
+		CurrencyPair: currencyPair,
+		Side:         side,
+		FilledAmount: orderFilledAmount,
+		Rate:         rate,
+		// The order could be filled in full or cancelled, if it's cancelled it could be partly
+		// filled or not at all. There isn't enough info to tell for sure!
+		Status:  exchange.OrderStatusAborted,
+		OrderID: orderID,
+	}
+	return order, nil
 }
 
 func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, currenyPair string) *exchange.Order {

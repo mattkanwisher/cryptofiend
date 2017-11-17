@@ -152,6 +152,22 @@ type PoloniexAuthenticatedTradeHistoryResponse struct {
 	Data []PoloniexAuthentictedTradeHistory
 }
 
+type PoloniexAuthenticatedOrderTrade struct {
+	GlobalTradeID int64   `json:"globalTradeID"`
+	TradeID       int64   `json:"tradeID,string"`
+	CurrencyPair  string  `json:"currencyPair"`
+	Type          string  `json:"type"`
+	Rate          float64 `json:"rate,string"`
+	Amount        float64 `json:"amount,string"`
+	Total         float64 `json:"total,string"`
+	Fee           float64 `json:"fee,string"`
+	Date          string  `json:"date"`
+}
+
+type PoloniexAuthentictedOrderTradesResponse struct {
+	Data []PoloniexAuthenticatedOrderTrade
+}
+
 type PoloniexResultingTrades struct {
 	Amount  float64 `json:"amount,string"`
 	Date    string  `json:"date"`
