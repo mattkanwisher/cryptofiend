@@ -85,18 +85,47 @@ func (l *Liqui) Setup(exch config.ExchangeConfig) {
 	}
 }
 
-// GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-func (l *Liqui) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
-	limits := make(map[pair.CurrencyItem]*exchange.LimitsInfo)
-	for currency, currencyInfo := range l.Info.Pairs {
-		limit := &exchange.LimitsInfo{
-			PriceDecimalPlaces:  int32(currencyInfo.DecimalPlaces),
-			AmountDecimalPlaces: int32(currencyInfo.DecimalPlaces),
-			MinAmount:           currencyInfo.MinAmount, // TODO: maybe use decimal type
-		}
-		limits[pair.CurrencyItem(currency)] = limit
+type currencyLimits struct {
+	exchangeName string
+	info         map[string]PairData
+}
+
+func newCurrencyLimits(exchangeName string, data map[string]PairData) *currencyLimits {
+	return &currencyLimits{exchangeName, data}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (l *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := exchange.FormatExchangeCurrency(l.exchangeName, p).String()
+	if v, exists := l.info[k]; exists {
+		return int32(v.DecimalPlaces)
 	}
-	return limits
+	return -1
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (l *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := exchange.FormatExchangeCurrency(l.exchangeName, p).String()
+	if v, exists := l.info[k]; exists {
+		return int32(v.DecimalPlaces)
+	}
+	return -1
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (l *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := exchange.FormatExchangeCurrency(l.exchangeName, p).String()
+	if v, exists := l.info[k]; exists {
+		return v.MinAmount
+	}
+	return 0
+}
+
+// GetLimits returns price/amount limits for the exchange.
+func (l *Liqui) GetLimits() exchange.ILimits {
+	return newCurrencyLimits(l.Name, l.Info.Pairs)
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.

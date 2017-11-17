@@ -142,33 +142,77 @@ func (g *Gemini) Setup(exch config.ExchangeConfig) {
 	}
 }
 
-// https://docs.gemini.com/rest-api/#symbols-and-minimums
-//
-// Symbol    Min Order Size       Min Order Increment     Min Price Increment
-// btcusd    0.00001 BTC (1e-5)	  0.00000001 BTC (1e-8)	  0.01 USD
-// ethusd    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.01 USD
-// ethbtc    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.00001 BTC (1e-5)
-var limitsInfo = map[pair.CurrencyItem]*exchange.LimitsInfo{
-	"BTCUSD": &exchange.LimitsInfo{
-		PriceDecimalPlaces:  2,       // USD
-		AmountDecimalPlaces: 8,       // BTC
-		MinAmount:           0.00001, // 1e-5 BTC
-	},
-	"ETHUSD": &exchange.LimitsInfo{
-		PriceDecimalPlaces:  2,     // USD
-		AmountDecimalPlaces: 6,     // ETH
-		MinAmount:           0.001, // 1e-3 ETH
-	},
-	"ETHBTC": &exchange.LimitsInfo{
-		PriceDecimalPlaces:  5,     // BTC
-		AmountDecimalPlaces: 6,     // ETH
-		MinAmount:           0.001, // 1e-3 ETH
-	},
+type limitsInfo struct {
+	PriceDecimalPlaces  int32 // -1 indicates this value isn't set
+	AmountDecimalPlaces int32 // -1 indicates this value isn't set
+	MinAmount           float64
 }
 
-// GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-func (g *Gemini) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
-	return limitsInfo
+type currencyLimits struct {
+	// Map of currency pair to limits info
+	info map[string]*limitsInfo
+}
+
+func newCurrencyLimits() *currencyLimits {
+	// https://docs.gemini.com/rest-api/#symbols-and-minimums
+	//
+	// Symbol    Min Order Size       Min Order Increment     Min Price Increment
+	// btcusd    0.00001 BTC (1e-5)	  0.00000001 BTC (1e-8)	  0.01 USD
+	// ethusd    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.01 USD
+	// ethbtc    0.001 ETH (1e-3)	  0.000001 ETH (1e-6)	  0.00001 BTC (1e-5)
+	return &currencyLimits{
+		map[string]*limitsInfo{
+			"BTCUSD": &limitsInfo{
+				PriceDecimalPlaces:  2,       // USD
+				AmountDecimalPlaces: 8,       // BTC
+				MinAmount:           0.00001, // 1e-5 BTC
+			},
+			"ETHUSD": &limitsInfo{
+				PriceDecimalPlaces:  2,     // USD
+				AmountDecimalPlaces: 6,     // ETH
+				MinAmount:           0.001, // 1e-3 ETH
+			},
+			"ETHBTC": &limitsInfo{
+				PriceDecimalPlaces:  5,     // BTC
+				AmountDecimalPlaces: 6,     // ETH
+				MinAmount:           0.001, // 1e-3 ETH
+			},
+		},
+	}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (l *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := strings.ToUpper(p.FirstCurrency.String() + p.SecondCurrency.String())
+	if v := l.info[k]; v != nil {
+		return v.PriceDecimalPlaces
+	}
+	return -1
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (l *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := strings.ToUpper(p.FirstCurrency.String() + p.SecondCurrency.String())
+	if v := l.info[k]; v != nil {
+		return v.AmountDecimalPlaces
+	}
+	return -1
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (l *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := strings.ToUpper(p.FirstCurrency.String() + p.SecondCurrency.String())
+	if v := l.info[k]; v != nil {
+		return v.MinAmount
+	}
+	return 0
+}
+
+// GetLimits returns price/amount limits for the exchange.
+func (g *Gemini) GetLimits() exchange.ILimits {
+	return newCurrencyLimits()
 }
 
 var currencyPairs = map[pair.CurrencyItem]*exchange.CurrencyPairInfo{

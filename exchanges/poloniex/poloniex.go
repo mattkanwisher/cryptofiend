@@ -92,9 +92,9 @@ func (p *Poloniex) Setup(exch config.ExchangeConfig) {
 	}
 }
 
-// GetLimits returns price/amount limits per currency pair (use FormatExchangeCurrency to get the right key).
-func (p *Poloniex) GetLimits() map[pair.CurrencyItem]*exchange.LimitsInfo {
-	return nil
+// GetLimits returns price/amount limits for the exchange.
+func (p *Poloniex) GetLimits() exchange.ILimits {
+	return &exchange.DefaultExchangeLimits{}
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.
@@ -478,9 +478,9 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 		return ret, err
 	}
 
-	for currenyPair, orders := range activeorders.Data {
+	for currencyPair, orders := range activeorders.Data {
 		for _, order := range orders {
-			retOrder := p.convertOrderToExchangeOrder(order, currenyPair)
+			retOrder := p.convertOrderToExchangeOrder(order, currencyPair)
 			ret = append(ret, retOrder)
 		}
 	}
