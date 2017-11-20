@@ -134,7 +134,7 @@ func (l *Liqui) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairI
 	currencies := map[pair.CurrencyItem]*exchange.CurrencyPairInfo{}
 	for currency, currencyInfo := range l.Info.Pairs {
 		if currencyInfo.Hidden == 0 {
-			p := pair.NewCurrencyPairDelimiter(currency, "_")
+			p := pair.NewCurrencyPairDelimiter(currency, l.RequestCurrencyPairFormat.Delimiter)
 			k := exchange.FormatExchangeCurrency(l.Name, p)
 			currencies[k] = &exchange.CurrencyPairInfo{Currency: p}
 		}

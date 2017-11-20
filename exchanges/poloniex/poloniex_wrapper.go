@@ -33,7 +33,7 @@ func (p *Poloniex) Run() {
 	}
 	p.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(ticker))
 	for currencyStr := range ticker {
-		currencyPair := pair.NewCurrencyPairDelimiter(currencyStr, "_")
+		currencyPair := pair.NewCurrencyPairDelimiter(currencyStr, p.RequestCurrencyPairFormat.Delimiter)
 		p.currencyPairs[pair.CurrencyItem(currencyStr)] = &exchange.CurrencyPairInfo{
 			Currency: currencyPair,
 		}
