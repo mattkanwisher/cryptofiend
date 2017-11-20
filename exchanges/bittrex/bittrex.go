@@ -329,7 +329,6 @@ func (b *Bittrex) NewOrder(
 	var err error
 	if side == exchange.OrderSideBuy {
 		orderID, err = b.PlaceBuyLimit(exchSymbol, amount, price)
-
 	} else if side == exchange.OrderSideSell {
 		orderID, err = b.PlaceSellLimit(exchSymbol, amount, price)
 	} else {
