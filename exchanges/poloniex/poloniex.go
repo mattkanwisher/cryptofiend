@@ -472,24 +472,29 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 
 	var currencyPair pair.CurrencyPair
 	var side exchange.OrderSide
-	var rate float64
+	rateSum := decimal.Zero
 	filledAmount := decimal.Zero
 	for i, trade := range response.Data {
 		// TODO: convert currency pair string to currency pair struct
 		// currencyPair = trade.CurrencyPair
-		// TODO: compute the average rate of all trades
 		if i == 0 {
+			rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 			side = exchange.OrderSide(trade.Type)
 		}
 		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Total))
 	}
 
+	var avgRate float64
+	numTrades := len(response.Data)
+	if numTrades > 0 {
+		avgRate, _ = rateSum.Div(decimal.New(int64(numTrades), 0)).Float64()
+	}
 	orderFilledAmount, _ := filledAmount.Float64()
 	order := &exchange.Order{
 		CurrencyPair: currencyPair,
 		Side:         side,
 		FilledAmount: orderFilledAmount,
-		Rate:         rate,
+		Rate:         avgRate,
 		// The order could be filled in full or cancelled, if it's cancelled it could be partly
 		// filled or not at all. There isn't enough info to tell for sure!
 		Status:  exchange.OrderStatusAborted,
