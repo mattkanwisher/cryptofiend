@@ -15,6 +15,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -280,75 +281,77 @@ func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	eorder, err := b.convertOrderToExchangeOrder(orderID, order)
-	//You can only find out if its canceled if you call /getorder
-	if order.IsOpen == false {
-		eorder.Status = exchange.OrderStatusAborted
-	}
-
-	return eorder, err
+	retOrder := b.convertOrderToExchangeOrder(orderID, &order)
+	return retOrder, nil
 }
 
-func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order Order) (*exchange.Order, error) {
+func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exchange.Order {
+	ll := log.WithField("exchange", b.Name).WithField("orderID", orderID)
 	retOrder := &exchange.Order{}
 	retOrder.OrderID = order.OrderUUID
 
-	//All orders that get returned are active
-	//TODO how to handle canceled orders
-	retOrder.Status = exchange.OrderStatusActive
-
-	//it seems if you call /market/getopenorders
 	if len(order.Closed) > 0 {
-		if order.CancelInitiated == true {
+		if order.QuantityRemaining > 0 {
 			retOrder.Status = exchange.OrderStatusAborted
 		} else {
 			retOrder.Status = exchange.OrderStatusFilled
 		}
+	} else {
+		retOrder.Status = exchange.OrderStatusActive
 	}
-	retOrder.FilledAmount = order.Quantity - order.QuantityRemaining
+
+	var isExact bool
+	if retOrder.FilledAmount, isExact = decimal.NewFromFloat(order.Quantity).
+		Sub(decimal.NewFromFloat(order.QuantityRemaining)).Float64(); !isExact {
+		ll.Warnf("conversion of filled amount to float64 was inexact")
+	}
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
-	retOrder.Rate = order.Price //PricePerunit ?????
+	retOrder.Rate = order.PricePerUnit
 	retOrder.CreatedAt = order.Opened.Unix()
-	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Exchange)
-	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
+	retOrder.CurrencyPair = pair.NewCurrencyPairDelimiter(order.Exchange, b.RequestCurrencyPairFormat.Delimiter)
+	if order.Type == "LIMIT_BUY" {
+		retOrder.Side = exchange.OrderSideBuy
+	} else if order.Type == "LIMIT_SELL" {
+		retOrder.Side = exchange.OrderSideSell
+	} else {
+		ll.Errorf("failed to convert '%s' to order side", order.Type)
+	}
 
-	return retOrder, nil
+	return retOrder
 }
 
-func (b *Bittrex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
+func (b *Bittrex) NewOrder(
+	symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
+	ordertype exchange.OrderType) (string, error) {
+	exchSymbol := exchange.FormatExchangeCurrency(b.Name, symbol).String()
+	var orderID string
+	var err error
 	if side == exchange.OrderSideBuy {
-		orderID, err := b.PlaceBuyLimit(string(symbol.Display("-", false)), amount, price)
-		if err != nil {
-			return "", err
-		}
-		return orderID, err
+		orderID, err = b.PlaceBuyLimit(exchSymbol, amount, price)
+
 	} else if side == exchange.OrderSideSell {
-		orderID, err := b.PlaceSellLimit(string(symbol.Display("-", false)), amount, price)
-		if err != nil {
-			return "", err
-		}
-		return orderID, err
+		orderID, err = b.PlaceSellLimit(exchSymbol, amount, price)
+	} else {
+		return "", fmt.Errorf("can't create order on %s exchange invalid value '%s' for side", b.Name, side)
 	}
-	return "", errors.New("invalid data trying to make a new order on bittrex")
+
+	if err != nil {
+		return "", err
+	}
+	return orderID, err
 }
 
 func (b *Bittrex) GetOrders() ([]*exchange.Order, error) {
 	ret := []*exchange.Order{}
 
-	//TODO it looks like you want to use /account/getorderhistory
-	// instead of /market/getopenorders  since it should have more data but we need to test that
-	orders, err := b.GetOrderHistory("")
+	orders, err := b.GetOpenOrders("")
 	if err != nil {
 		return ret, err
 	}
+
 	for _, order := range orders {
-		retOrder, err := b.convertOrderToExchangeOrder(order.OrderUUID, order)
-		if err == nil {
-			ret = append(ret, retOrder)
-		} else {
-			log.WithField("orderID", order.OrderUUID).WithError(err).Error("Failed converting order")
-		}
+		ret = append(ret, b.convertOrderToExchangeOrder(order.OrderUUID, &order))
 	}
 	return ret, nil
 }
