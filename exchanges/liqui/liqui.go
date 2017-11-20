@@ -38,8 +38,7 @@ const (
 // Liqui is the overarching type across the liqui package
 type Liqui struct {
 	exchange.Base
-	Ticker map[string]Ticker
-	Info   Info
+	Info Info
 }
 
 // SetDefaults sets current default values for liqui
@@ -50,7 +49,6 @@ func (l *Liqui) SetDefaults() {
 	l.Verbose = false
 	l.Websocket = false
 	l.RESTPollingDelay = 10
-	l.Ticker = make(map[string]Ticker)
 	l.RequestCurrencyPairFormat.Delimiter = "_"
 	l.RequestCurrencyPairFormat.Uppercase = false
 	l.RequestCurrencyPairFormat.Separator = "-"
