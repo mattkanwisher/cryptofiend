@@ -61,6 +61,10 @@ const (
 // Bittrex is the overaching type across the bittrex methods
 type Bittrex struct {
 	exchange.Base
+	// Maps currency pair to info about the pair
+	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
+	// Maps currency pair to min trade size (in base/first currency in the pair)
+	minTradeSizes map[pair.CurrencyItem]float64
 }
 
 // SetDefaults method assignes the default values for Bittrex
@@ -103,15 +107,48 @@ func (b *Bittrex) Setup(exch config.ExchangeConfig) {
 	}
 }
 
+type currencyLimits struct {
+	exchangeName string
+	// Maps currency pair to min trade size (in base/first currency in the pair)
+	minTradeSizes map[pair.CurrencyItem]float64
+}
+
+func newCurrencyLimits(exchangeName string, minTradeSizes map[pair.CurrencyItem]float64) *currencyLimits {
+	return &currencyLimits{exchangeName, minTradeSizes}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	// API docs don't mention anything about this so make an educated guess...
+	return 8
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	// API docs don't mention anything about this so make an educated guess...
+	return 8
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := exchange.FormatExchangeCurrency(cl.exchangeName, p)
+	if v, exists := cl.minTradeSizes[k]; exists {
+		return v
+	}
+	return 0
+}
+
 // GetLimits returns price/amount limits for the exchange.
 func (b *Bittrex) GetLimits() exchange.ILimits {
-	return &exchange.DefaultExchangeLimits{}
+	return newCurrencyLimits(b.Name, b.minTradeSizes)
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.
 // Use FormatExchangeCurrency to get the right key.
 func (b *Bittrex) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
-	return nil
+	return b.currencyPairs
 }
 
 // GetMarkets is used to get the open and available trading markets at Bittrex

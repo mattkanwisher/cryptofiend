@@ -26,6 +26,20 @@ func (b *Bittrex) Run() {
 	if err != nil {
 		log.Printf("%s Failed to get available symbols.\n", b.GetName())
 	} else {
+		b.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(exchangeProducts))
+		b.minTradeSizes = make(map[pair.CurrencyItem]float64, len(exchangeProducts))
+		for i := range exchangeProducts {
+			market := &exchangeProducts[i]
+			currencyPair := pair.NewCurrencyPairDelimiter(market.MarketName, b.RequestCurrencyPairFormat.Delimiter)
+			currency := pair.CurrencyItem(market.MarketName)
+			b.currencyPairs[currency] = &exchange.CurrencyPairInfo{
+				Currency:           currencyPair,
+				FirstCurrencyName:  market.BaseCurrencyLong,
+				SecondCurrencyName: market.MarketCurrencyLong,
+			}
+			b.minTradeSizes[currency] = market.MinTradeSize
+		}
+
 		forceUpgrade := false
 		if !common.DataContains(b.EnabledPairs, "-") || !common.DataContains(b.AvailablePairs, "-") {
 			forceUpgrade = true
