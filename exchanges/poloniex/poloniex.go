@@ -535,18 +535,29 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 	return ret, nil
 }
 
-func (p *Poloniex) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide, ordertype exchange.OrderType) (string, error) {
-	/*You may optionally set "fillOrKill", "immediateOrCancel", "postOnly" to 1. A fill-or-kill order will either fill in its entirety or be completely aborted. An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book. A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.*/
-	//TODO thimk about this more
+func (p *Poloniex) NewOrder(
+	symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
+	orderType exchange.OrderType) (string, error) {
+	/*
+		You may optionally set "fillOrKill", "immediateOrCancel", "postOnly".
+		- A fill-or-kill order will either fill in its entirety or be completely aborted.
+		- An immediate-or-cancel order can be partially or completely filled,
+		  but any portion of the order that cannot be filled immediately will be canceled
+		  rather than left on the order book.
+		- A post-only order will only be placed if no portion of it fills immediately;
+		  this guarantees you will never pay the taker fee on any part of the order that fills.
+	*/
+	// For now just support plain limit orders.
 	immediate := false
 	fillOrKill := false
 
-	presp, err := p.PlaceOrder(string(symbol.Display("_", true)), price, amount, immediate, fillOrKill, side)
+	exchSymbol := exchange.FormatExchangeCurrency(p.Name, symbol).String()
+	response, err := p.PlaceOrder(exchSymbol, price, amount, immediate, fillOrKill, side)
 
 	if err != nil {
 		return "", err
 	}
-	orderID := strconv.FormatInt(presp.OrderNumber, 10)
+	orderID := strconv.FormatInt(response.OrderNumber, 10)
 	//TODO returns a list of finished trades PoloniexResultingTrades
 	//guessing this exchange can fill automattically???
 
