@@ -60,11 +60,11 @@ type AccountInfo struct {
 // OrderInfo holds specific order information
 type OrderInfo struct {
 	Pair             string  `json:"pair"`
-	Type             string  `json:"sell"`
-	StartAmount      float64 `json:"start_amount"` //Only finished orders have start amount
+	Type             string  `json:"type"`
+	StartAmount      float64 `json:"start_amount"` // Only set in GetOrderInfo()
 	Amount           float64 `json:"amount"`
 	Rate             float64 `json:"rate"`
-	TimestampCreated int64   `json:"time_created"`
+	TimestampCreated int64   `json:"timestamp_created"`
 	Status           int     `json:"status"`
 }
 
