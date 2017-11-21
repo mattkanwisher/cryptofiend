@@ -62,6 +62,23 @@ func (c CurrencyPair) Display(delimiter string, uppercase bool) CurrencyItem {
 	return pair.Lower()
 }
 
+// FormatPair returns a new currency pair based on this one but formatted according to the given
+// parameters.
+func (c CurrencyPair) FormatPair(delimiter string, uppercase bool) CurrencyPair {
+	if uppercase {
+		return CurrencyPair{
+			Delimiter:      delimiter,
+			FirstCurrency:  c.FirstCurrency.Upper(),
+			SecondCurrency: c.SecondCurrency.Upper(),
+		}
+	}
+	return CurrencyPair{
+		Delimiter:      delimiter,
+		FirstCurrency:  c.FirstCurrency.Lower(),
+		SecondCurrency: c.SecondCurrency.Lower(),
+	}
+}
+
 // Equal compares two currency pairs and returns whether or not they are equal
 func (c CurrencyPair) Equal(p CurrencyPair) bool {
 	if c.FirstCurrency.Upper() == p.FirstCurrency.Upper() &&

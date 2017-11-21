@@ -76,22 +76,24 @@ func (o *Orderbooks) GetOrderbook(_ string, p pair.CurrencyPair, orderbookType s
 	o.m.Lock()
 	defer o.m.Unlock()
 
-	if !o.FirstCurrencyExists(p.GetFirstCurrency()) {
+	fp := o.formatCurrencyPair(p)
+
+	if !o.FirstCurrencyExists(fp.GetFirstCurrency()) {
 		return Base{}, errors.New(ErrPrimaryCurrencyNotFound)
 	}
 
-	if !o.SecondCurrencyExists(p) {
-		err := fmt.Errorf("%s-%s-%s", ErrSecondaryCurrencyNotFound, p.GetFirstCurrency(), p.GetSecondCurrency())
+	if !o.SecondCurrencyExists(fp) {
+		err := fmt.Errorf("%s-%s-%s", ErrSecondaryCurrencyNotFound, fp.GetFirstCurrency(), fp.GetSecondCurrency())
 		return Base{}, err
 	}
 
-	return o.orderbooks[p.GetFirstCurrency()][p.GetSecondCurrency()][orderbookType], nil
+	return o.orderbooks[fp.GetFirstCurrency()][fp.GetSecondCurrency()][orderbookType], nil
 }
 
 // FirstCurrencyExists checks to see if the first currency of the orderbook map
 // exists
 func (o *Orderbooks) FirstCurrencyExists(currency pair.CurrencyItem) bool {
-	if _, ok := o.orderbooks[currency]; ok {
+	if _, ok := o.orderbooks[o.formatCurrency(currency)]; ok {
 		return true
 	}
 	return false
@@ -100,8 +102,10 @@ func (o *Orderbooks) FirstCurrencyExists(currency pair.CurrencyItem) bool {
 // SecondCurrencyExists checks to see if the second currency of the orderbook
 // map exists
 func (o *Orderbooks) SecondCurrencyExists(p pair.CurrencyPair) bool {
-	if _, ok := o.orderbooks[p.GetFirstCurrency()]; ok {
-		if _, ok := o.orderbooks[p.GetFirstCurrency()][p.GetSecondCurrency()]; ok {
+	fp := o.formatCurrencyPair(p)
+
+	if _, ok := o.orderbooks[fp.GetFirstCurrency()]; ok {
+		if _, ok := o.orderbooks[fp.GetFirstCurrency()][fp.GetSecondCurrency()]; ok {
 			return true
 		}
 	}
@@ -114,17 +118,20 @@ func (o *Orderbooks) ProcessOrderbook(_ string, p pair.CurrencyPair, orderbookNe
 	o.m.Lock()
 	defer o.m.Unlock()
 
-	orderbookNew.CurrencyPair = p.Pair().String()
+	// Use a single currency pair format internally regardless of the format used by the exchange/config.
+	fp := o.formatCurrencyPair(p)
+
+	orderbookNew.CurrencyPair = fp.Pair().String()
 	orderbookNew.LastUpdated = time.Now()
 
-	if o.FirstCurrencyExists(p.GetFirstCurrency()) {
-		if !o.SecondCurrencyExists(p) {
+	if o.FirstCurrencyExists(fp.GetFirstCurrency()) {
+		if !o.SecondCurrencyExists(fp) {
 			b := make(map[string]Base)
 			b[orderbookType] = orderbookNew
-			o.orderbooks[p.FirstCurrency][p.SecondCurrency] = b
+			o.orderbooks[fp.FirstCurrency][fp.SecondCurrency] = b
 			return
 		} else {
-			o.orderbooks[p.FirstCurrency][p.SecondCurrency][orderbookType] = orderbookNew
+			o.orderbooks[fp.FirstCurrency][fp.SecondCurrency][orderbookType] = orderbookNew
 			return
 		}
 	}
@@ -132,8 +139,17 @@ func (o *Orderbooks) ProcessOrderbook(_ string, p pair.CurrencyPair, orderbookNe
 	a := make(map[pair.CurrencyItem]map[string]Base)
 	b := make(map[string]Base)
 	b[orderbookType] = orderbookNew
-	a[p.SecondCurrency] = b
-	o.orderbooks[p.FirstCurrency] = a
+	a[fp.SecondCurrency] = b
+	o.orderbooks[fp.FirstCurrency] = a
+}
+
+// Returns a new currency pair based on the given one that's formatted using the internal format.
+func (o *Orderbooks) formatCurrencyPair(p pair.CurrencyPair) pair.CurrencyPair {
+	return p.FormatPair("/", false)
+}
+
+func (o *Orderbooks) formatCurrency(currency pair.CurrencyItem) pair.CurrencyItem {
+	return currency.Lower()
 }
 
 // Init creates a new set of Orderbooks
