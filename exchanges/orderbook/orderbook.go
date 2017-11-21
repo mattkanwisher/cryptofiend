@@ -18,12 +18,6 @@ const (
 	Spot = "SPOT"
 )
 
-// Orderbook holds the orderbook information for a currency pair and type
-type Orderbook struct {
-	Orderbook    map[pair.CurrencyItem]map[pair.CurrencyItem]map[string]Base
-	ExchangeName string
-}
-
 // CalculateTotalBids returns the total amount of bids and the total orderbook
 // bids value
 func (o *Base) CalculateTotalBids() (float64, float64) {
