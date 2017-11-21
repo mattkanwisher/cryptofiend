@@ -14,6 +14,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -290,31 +291,28 @@ func (l *Liqui) convertOrderToExchangeOrder(orderID string, order *OrderInfo) *e
 	retOrder := &exchange.Order{}
 	retOrder.OrderID = orderID
 
-	//All orders that get returned are active
-	//TODO how to handle canceled orders
-	if order.Status == 0 {
+	switch order.Status {
+	case 0:
 		retOrder.Status = exchange.OrderStatusActive
-	} else if order.Status == 1 {
-		//Executed
+	case 1: // Executed
 		retOrder.Status = exchange.OrderStatusFilled
-	} else if order.Status == 2 {
-		//Canceled
-		retOrder.Status = exchange.OrderStatusAborted
-	} else if order.Status == 3 {
-		//Canceled by partially executed
-		//We dont have this concept internally
+	case 2, 3: // Canceled, or Canceled and partially executed
 		retOrder.Status = exchange.OrderStatusAborted
 	}
 
-	// <--- only /get_orders will have a start amount, active orders doesn't
+	// StartAmount is only set for orders returned by GetOrder(),
+	// the ones returned by GetOrders() won't have it set.
 	if order.StartAmount != 0 {
-		retOrder.FilledAmount = order.StartAmount - order.Amount
+		amountFilled, _ := decimal.NewFromFloat(order.StartAmount).Sub(decimal.NewFromFloat(order.Amount)).Float64()
+		retOrder.Amount = order.StartAmount
+		retOrder.FilledAmount = amountFilled
 		retOrder.RemainingAmount = order.Amount
+	} else {
+		retOrder.Amount = order.Amount
 	}
-	retOrder.Amount = order.Amount
 	retOrder.Rate = order.Rate
 	retOrder.CreatedAt = order.TimestampCreated
-	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(order.Pair)
+	retOrder.CurrencyPair = pair.NewCurrencyPairDelimiter(order.Pair, l.RequestCurrencyPairFormat.Delimiter)
 	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
 	return retOrder
 }
