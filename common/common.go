@@ -260,13 +260,13 @@ func CalculateNetProfit(amount, priceThen, priceNow, costs float64) float64 {
 // SendHTTPRequest sends a request using the http package and returns a response
 // as a string and an error
 func SendHTTPRequest(method, path string, headers map[string]string, body io.Reader) (string, error) {
-	result := strings.ToUpper(method)
+	upperMethod := strings.ToUpper(method)
 
-	if result != "POST" && result != "GET" && result != "DELETE" {
+	if upperMethod != "POST" && upperMethod != "GET" && upperMethod != "DELETE" {
 		return "", errors.New("invalid HTTP method specified")
 	}
 
-	req, err := http.NewRequest(method, path, body)
+	req, err := http.NewRequest(upperMethod, path, body)
 
 	if err != nil {
 		return "", err
@@ -283,6 +283,9 @@ func SendHTTPRequest(method, path string, headers map[string]string, body io.Rea
 	fmt.Println(string(requestDump))
 
 	timeout := time.Duration(3 * time.Second)
+	if upperMethod == "POST" {
+		timeout = time.Duration(15 * time.Second)
+	}
 	httpClient := &http.Client{Timeout: timeout}
 	resp, err := httpClient.Do(req)
 
