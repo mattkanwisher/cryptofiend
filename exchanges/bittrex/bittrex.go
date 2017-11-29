@@ -232,14 +232,14 @@ func (b *Bittrex) GetMarketHistory(currencyPair string) ([]MarketHistory, error)
 // "Quantity" is the amount to purchase
 // "Rate" is the rate at which to purchase
 func (b *Bittrex) PlaceBuyLimit(currencyPair string, quantity, rate float64) (string, error) {
-	var id string //TODO validate that this gets converted correctly
+	var response UUID
 	values := url.Values{}
 	values.Set("market", currencyPair)
 	values.Set("quantity", strconv.FormatFloat(quantity, 'E', -1, 64))
 	values.Set("rate", strconv.FormatFloat(rate, 'E', -1, 64))
 	path := fmt.Sprintf("%s/%s", bittrexAPIURL, bittrexAPIBuyLimit)
 
-	return id, b.HTTPRequest(path, true, values, &id)
+	return response.ID, b.HTTPRequest(path, true, values, &response)
 }
 
 // PlaceSellLimit is used to place a sell order in a specific market. Use
@@ -249,14 +249,14 @@ func (b *Bittrex) PlaceBuyLimit(currencyPair string, quantity, rate float64) (st
 // "Quantity" is the amount to purchase
 // "Rate" is the rate at which to purchase
 func (b *Bittrex) PlaceSellLimit(currencyPair string, quantity, rate float64) (string, error) {
-	var id string //TODO validate that this gets converted correctly
+	var response UUID
 	values := url.Values{}
 	values.Set("market", currencyPair)
 	values.Set("quantity", strconv.FormatFloat(quantity, 'E', -1, 64))
 	values.Set("rate", strconv.FormatFloat(rate, 'E', -1, 64))
 	path := fmt.Sprintf("%s/%s", bittrexAPIURL, bittrexAPISellLimit)
 
-	return id, b.HTTPRequest(path, true, values, &id)
+	return response.ID, b.HTTPRequest(path, true, values, &response)
 }
 
 // GetOpenOrders returns all orders that you currently have opened.
