@@ -88,6 +88,13 @@ func (c CurrencyPair) Equal(p CurrencyPair) bool {
 	return false
 }
 
+// Invert returns the result of swaping the currencies in the pair, e.g. ETH/BTC -> BTC/ETH
+func (c CurrencyPair) Invert() CurrencyPair {
+	ret := c
+	ret.FirstCurrency, ret.SecondCurrency = c.SecondCurrency, c.FirstCurrency
+	return ret
+}
+
 // NewCurrencyPairDelimiter splits the desired currency string at delimeter,
 // the returns a CurrencyPair struct
 func NewCurrencyPairDelimiter(currency, delimiter string) CurrencyPair {

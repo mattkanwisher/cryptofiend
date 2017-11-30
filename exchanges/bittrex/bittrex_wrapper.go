@@ -30,14 +30,16 @@ func (b *Bittrex) Run() {
 		b.minTradeSizes = make(map[pair.CurrencyItem]float64, len(exchangeProducts))
 		for i := range exchangeProducts {
 			market := &exchangeProducts[i]
-			currencyPair := pair.NewCurrencyPairDelimiter(market.MarketName, b.RequestCurrencyPairFormat.Delimiter)
-			currency := pair.CurrencyItem(market.MarketName)
-			b.currencyPairs[currency] = &exchange.CurrencyPairInfo{
+			// Bittrex doesn't follow common conventions for currency pairs, it inverts the
+			// currencies for some bizare reason, e.g. ETH/BTC on other exchanges corresponds
+			// to BTC/ETH on Bittrex.
+			currencyPair := b.SymbolToCurrencyPair(market.MarketName)
+			b.currencyPairs[pair.CurrencyItem(market.MarketName)] = &exchange.CurrencyPairInfo{
 				Currency:           currencyPair,
-				FirstCurrencyName:  market.BaseCurrencyLong,
-				SecondCurrencyName: market.MarketCurrencyLong,
+				FirstCurrencyName:  market.MarketCurrencyLong,
+				SecondCurrencyName: market.BaseCurrencyLong,
 			}
-			b.minTradeSizes[currency] = market.MinTradeSize
+			b.minTradeSizes[currencyPair.Display("/", false)] = market.MinTradeSize
 		}
 
 		forceUpgrade := false
@@ -125,7 +127,8 @@ func (b *Bittrex) GetOrderbookEx(p pair.CurrencyPair, assetType string) (orderbo
 // UpdateOrderbook updates and returns the orderbook for a currency pair
 func (b *Bittrex) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
 	var orderBook orderbook.Base
-	orderbookNew, err := b.GetOrderbook(exchange.FormatExchangeCurrency(b.GetName(), p).String())
+	symbol := b.CurrencyPairToSymbol(p)
+	orderbookNew, err := b.GetOrderbook(symbol)
 	if err != nil {
 		return orderBook, err
 	}
@@ -150,4 +153,28 @@ func (b *Bittrex) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderb
 
 	b.Orderbooks.ProcessOrderbook(b.GetName(), p, orderBook, assetType)
 	return b.Orderbooks.GetOrderbook(b.Name, p, assetType)
+}
+
+// GetEnabledCurrencies returns the enabled currency pairs for the exchange.
+func (b *Bittrex) GetEnabledCurrencies() []pair.CurrencyPair {
+	// Bittrex doesn't follow common conventions for currency pairs, it inverts the
+	// currencies for some bizare reason, so invert them again here so they're
+	// consistent with the other exchanges.
+	pairs := b.Base.GetEnabledCurrencies()
+	for i := range pairs {
+		pairs[i] = pairs[i].Invert()
+	}
+	return pairs
+}
+
+// GetAvailableCurrencies returns the available currency pairs for the exchange.
+func (b *Bittrex) GetAvailableCurrencies() []pair.CurrencyPair {
+	// Bittrex doesn't follow common conventions for currency pairs, it inverts the
+	// currencies for some bizare reason, so invert them again here so they're
+	// consistent with the other exchanges.
+	pairs := b.Base.GetAvailableCurrencies()
+	for i := range pairs {
+		pairs[i] = pairs[i].Invert()
+	}
+	return pairs
 }

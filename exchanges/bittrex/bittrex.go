@@ -63,7 +63,7 @@ const (
 // Bittrex is the overaching type across the bittrex methods
 type Bittrex struct {
 	exchange.Base
-	// Maps currency pair to info about the pair
+	// Maps symbol (exchange specific market identifier) to currency pair info
 	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 	// Maps currency pair to min trade size (in base/first currency in the pair)
 	minTradeSizes map[pair.CurrencyItem]float64
@@ -96,6 +96,10 @@ func (b *Bittrex) Setup(exch config.ExchangeConfig) {
 		b.Verbose = exch.Verbose
 		b.Websocket = exch.Websocket
 		b.BaseCurrencies = common.SplitStrings(exch.BaseCurrencies, ",")
+		// Bittrex doesn't follow common conventions for currency pairs, it inverts the
+		// currencies for some bizare reason. The currency pairs in the config file should really
+		// be called symbols (exchange specific market identifiers), and they'll be converted
+		// to currency pairs that follow common conventions as needed.
 		b.AvailablePairs = common.SplitStrings(exch.AvailablePairs, ",")
 		b.EnabledPairs = common.SplitStrings(exch.EnabledPairs, ",")
 		err := b.SetCurrencyPairFormat()
@@ -107,6 +111,22 @@ func (b *Bittrex) Setup(exch config.ExchangeConfig) {
 			log.Fatal(err)
 		}
 	}
+}
+
+// CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
+func (b *Bittrex) CurrencyPairToSymbol(p pair.CurrencyPair) string {
+	return p.
+		// Bittrex symbols are inverted currency pairs
+		Invert().
+		Display(b.RequestCurrencyPairFormat.Delimiter, b.RequestCurrencyPairFormat.Uppercase).
+		String()
+}
+
+// SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
+func (b *Bittrex) SymbolToCurrencyPair(symbol string) pair.CurrencyPair {
+	p := pair.NewCurrencyPairDelimiter(symbol, b.RequestCurrencyPairFormat.Delimiter)
+	// Bittrex symbols are inverted currency pairs, so invert them here to get a proper currency pair
+	return p.Invert()
 }
 
 type currencyLimits struct {
@@ -135,7 +155,7 @@ func (cl *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
 
 // Returns the minimum trade amount for the given currency pair.
 func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
-	k := exchange.FormatExchangeCurrency(cl.exchangeName, p)
+	k := p.Display("/", false)
 	if v, exists := cl.minTradeSizes[k]; exists {
 		return v
 	}
@@ -309,13 +329,13 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
 	retOrder.Rate = order.PricePerUnit
-	retOrder.CurrencyPair = pair.NewCurrencyPairDelimiter(order.Exchange, b.RequestCurrencyPairFormat.Delimiter)
 	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
 	if err != nil {
 		ll.WithError(err).Errorf("failed to parse %s", order.Opened)
 	} else {
 		retOrder.CreatedAt = createdAt.Unix()
 	}
+	retOrder.CurrencyPair = b.SymbolToCurrencyPair(order.Exchange)
 	if order.Type == "LIMIT_BUY" {
 		retOrder.Side = exchange.OrderSideBuy
 	} else if order.Type == "LIMIT_SELL" {
@@ -328,15 +348,15 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 }
 
 func (b *Bittrex) NewOrder(
-	symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
+	currencyPair pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
 	ordertype exchange.OrderType) (string, error) {
-	exchSymbol := exchange.FormatExchangeCurrency(b.Name, symbol).String()
+	symbol := b.CurrencyPairToSymbol(currencyPair)
 	var orderID string
 	var err error
 	if side == exchange.OrderSideBuy {
-		orderID, err = b.PlaceBuyLimit(exchSymbol, amount, price)
+		orderID, err = b.PlaceBuyLimit(symbol, amount, price)
 	} else if side == exchange.OrderSideSell {
-		orderID, err = b.PlaceSellLimit(exchSymbol, amount, price)
+		orderID, err = b.PlaceSellLimit(symbol, amount, price)
 	} else {
 		return "", fmt.Errorf("can't create order on %s exchange invalid value '%s' for side", b.Name, side)
 	}
