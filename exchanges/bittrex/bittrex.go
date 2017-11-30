@@ -25,6 +25,7 @@ const (
 	bittrexAPIVersion          = "v1.1"
 	bittrexMaxOpenOrders       = 500
 	bittrexMaxOrderCountPerDay = 200000
+	bittrexTimeFormat          = "2006-01-02T15:04:05"
 
 	// Returned messages from Bittrex API
 	bittrexAddressGenerating      = "ADDRESS_GENERATING"
@@ -308,8 +309,13 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
 	retOrder.Rate = order.PricePerUnit
-	retOrder.CreatedAt = order.Opened.Unix()
 	retOrder.CurrencyPair = pair.NewCurrencyPairDelimiter(order.Exchange, b.RequestCurrencyPairFormat.Delimiter)
+	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
+	if err != nil {
+		ll.WithError(err).Errorf("failed to parse %s", order.Opened)
+	} else {
+		retOrder.CreatedAt = createdAt.Unix()
+	}
 	if order.Type == "LIMIT_BUY" {
 		retOrder.Side = exchange.OrderSideBuy
 	} else if order.Type == "LIMIT_SELL" {
