@@ -106,9 +106,28 @@ type UUID struct {
 	ID string `json:"uuid"`
 }
 
-// Order holds the full order information associated with the UUID supplied
+// OpenOrder holds the order information returned by the /market/getopenorders endpoint
+type OpenOrder struct {
+	OrderUUID         string  `json:"OrderUuid"`
+	Exchange          string  `json:"Exchange"`
+	Type              string  `json:"OrderType"`
+	Quantity          float64 `json:"Quantity"`
+	QuantityRemaining float64 `json:"QuantityRemaining"`
+	Limit             float64 `json:"Limit"`
+	CommissionPaid    float64 `json:"CommissionPaid"`
+	Price             float64 `json:"Price"`
+	PricePerUnit      float64 `json:"PricePerUnit"`
+	Opened            string  `json:"Opened"`
+	Closed            string  `json:"Closed"`
+	CancelInitiated   bool    `json:"CancelInitiated"`
+	ImmediateOrCancel bool    `json:"ImmediateOrCancel"`
+	IsConditional     bool    `json:"IsConditional"`
+	Condition         string  `json:"Condition"`
+	ConditionTarget   string  `json:"ConditionTarget"`
+}
+
+// Order holds the order information returned by the /market/getorder endpoint
 type Order struct {
-	AccountID                  string  `json:"AccountId"`
 	OrderUUID                  string  `json:"OrderUuid"`
 	Exchange                   string  `json:"Exchange"`
 	Type                       string  `json:"Type"`

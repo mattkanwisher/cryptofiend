@@ -282,8 +282,8 @@ func (b *Bittrex) PlaceSellLimit(currencyPair string, quantity, rate float64) (s
 
 // GetOpenOrders returns all orders that you currently have opened.
 // A specific market can be requested for example "btc-ltc"
-func (b *Bittrex) GetOpenOrders(currencyPair string) ([]Order, error) {
-	var orders []Order
+func (b *Bittrex) GetOpenOrders(currencyPair string) ([]OpenOrder, error) {
+	var orders []OpenOrder
 	values := url.Values{}
 	if !(currencyPair == "" || currencyPair == " ") {
 		values.Set("market", currencyPair)
@@ -304,6 +304,47 @@ func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
 	}
 	retOrder := b.convertOrderToExchangeOrder(orderID, &order)
 	return retOrder, nil
+}
+
+func (b *Bittrex) convertOpenOrderToExchangeOrder(orderID string, order *OpenOrder) *exchange.Order {
+	ll := log.WithField("exchange", b.Name).WithField("orderID", orderID)
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = order.OrderUUID
+
+	if len(order.Closed) > 0 {
+		if order.QuantityRemaining > 0 {
+			retOrder.Status = exchange.OrderStatusAborted
+		} else {
+			retOrder.Status = exchange.OrderStatusFilled
+		}
+	} else {
+		retOrder.Status = exchange.OrderStatusActive
+	}
+
+	var isExact bool
+	if retOrder.FilledAmount, isExact = decimal.NewFromFloat(order.Quantity).
+		Sub(decimal.NewFromFloat(order.QuantityRemaining)).Float64(); !isExact {
+		ll.Warnf("conversion of filled amount to float64 was inexact")
+	}
+	retOrder.RemainingAmount = order.QuantityRemaining
+	retOrder.Amount = order.Quantity
+	retOrder.Rate = order.PricePerUnit
+	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
+	if err != nil {
+		ll.WithError(err).Errorf("failed to parse %s", order.Opened)
+	} else {
+		retOrder.CreatedAt = createdAt.Unix()
+	}
+	retOrder.CurrencyPair = b.SymbolToCurrencyPair(order.Exchange)
+	if order.Type == "LIMIT_BUY" {
+		retOrder.Side = exchange.OrderSideBuy
+	} else if order.Type == "LIMIT_SELL" {
+		retOrder.Side = exchange.OrderSideSell
+	} else {
+		ll.Errorf("failed to convert '%s' to order side", order.Type)
+	}
+
+	return retOrder
 }
 
 func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exchange.Order {
@@ -376,7 +417,7 @@ func (b *Bittrex) GetOrders() ([]*exchange.Order, error) {
 	}
 
 	for _, order := range orders {
-		ret = append(ret, b.convertOrderToExchangeOrder(order.OrderUUID, &order))
+		ret = append(ret, b.convertOpenOrderToExchangeOrder(order.OrderUUID, &order))
 	}
 	return ret, nil
 }
