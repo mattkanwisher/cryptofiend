@@ -106,31 +106,12 @@ type UUID struct {
 	ID string `json:"uuid"`
 }
 
-// OpenOrder holds the order information returned by the /market/getopenorders endpoint
-type OpenOrder struct {
-	OrderUUID         string  `json:"OrderUuid"`
-	Exchange          string  `json:"Exchange"`
-	Type              string  `json:"OrderType"`
-	Quantity          float64 `json:"Quantity"`
-	QuantityRemaining float64 `json:"QuantityRemaining"`
-	Limit             float64 `json:"Limit"`
-	CommissionPaid    float64 `json:"CommissionPaid"`
-	Price             float64 `json:"Price"`
-	PricePerUnit      float64 `json:"PricePerUnit"`
-	Opened            string  `json:"Opened"`
-	Closed            string  `json:"Closed"`
-	CancelInitiated   bool    `json:"CancelInitiated"`
-	ImmediateOrCancel bool    `json:"ImmediateOrCancel"`
-	IsConditional     bool    `json:"IsConditional"`
-	Condition         string  `json:"Condition"`
-	ConditionTarget   string  `json:"ConditionTarget"`
-}
-
-// Order holds the order information returned by the /market/getorder endpoint
+// Order holds the order information returned by the Bittrex API,
+// this is a superset of all the fields that are returned by the various endpoints.
 type Order struct {
 	OrderUUID                  string  `json:"OrderUuid"`
 	Exchange                   string  `json:"Exchange"`
-	Type                       string  `json:"Type"`
+	Type                       string  `json:"OrderType"`
 	Quantity                   float64 `json:"Quantity"`
 	QuantityRemaining          float64 `json:"QuantityRemaining"`
 	Limit                      float64 `json:"Limit"`

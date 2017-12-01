@@ -282,8 +282,8 @@ func (b *Bittrex) PlaceSellLimit(currencyPair string, quantity, rate float64) (s
 
 // GetOpenOrders returns all orders that you currently have opened.
 // A specific market can be requested for example "btc-ltc"
-func (b *Bittrex) GetOpenOrders(currencyPair string) ([]OpenOrder, error) {
-	var orders []OpenOrder
+func (b *Bittrex) GetOpenOrders(currencyPair string) ([]Order, error) {
+	var orders []Order
 	values := url.Values{}
 	if !(currencyPair == "" || currencyPair == " ") {
 		values.Set("market", currencyPair)
@@ -292,6 +292,7 @@ func (b *Bittrex) GetOpenOrders(currencyPair string) ([]OpenOrder, error) {
 
 	return orders, b.HTTPRequest(path, true, values, &orders)
 }
+
 func (b *Bittrex) CancelOrder(uuid string) error {
 	_, err := b.cancelOrder(uuid)
 	return err
@@ -304,47 +305,6 @@ func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
 	}
 	retOrder := b.convertOrderToExchangeOrder(orderID, &order)
 	return retOrder, nil
-}
-
-func (b *Bittrex) convertOpenOrderToExchangeOrder(orderID string, order *OpenOrder) *exchange.Order {
-	ll := log.WithField("exchange", b.Name).WithField("orderID", orderID)
-	retOrder := &exchange.Order{}
-	retOrder.OrderID = order.OrderUUID
-
-	if len(order.Closed) > 0 {
-		if order.QuantityRemaining > 0 {
-			retOrder.Status = exchange.OrderStatusAborted
-		} else {
-			retOrder.Status = exchange.OrderStatusFilled
-		}
-	} else {
-		retOrder.Status = exchange.OrderStatusActive
-	}
-
-	var isExact bool
-	if retOrder.FilledAmount, isExact = decimal.NewFromFloat(order.Quantity).
-		Sub(decimal.NewFromFloat(order.QuantityRemaining)).Float64(); !isExact {
-		ll.Warnf("conversion of filled amount to float64 was inexact")
-	}
-	retOrder.RemainingAmount = order.QuantityRemaining
-	retOrder.Amount = order.Quantity
-	retOrder.Rate = order.PricePerUnit
-	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
-	if err != nil {
-		ll.WithError(err).Errorf("failed to parse %s", order.Opened)
-	} else {
-		retOrder.CreatedAt = createdAt.Unix()
-	}
-	retOrder.CurrencyPair = b.SymbolToCurrencyPair(order.Exchange)
-	if order.Type == "LIMIT_BUY" {
-		retOrder.Side = exchange.OrderSideBuy
-	} else if order.Type == "LIMIT_SELL" {
-		retOrder.Side = exchange.OrderSideSell
-	} else {
-		ll.Errorf("failed to convert '%s' to order side", order.Type)
-	}
-
-	return retOrder
 }
 
 func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exchange.Order {
@@ -370,13 +330,16 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
 	retOrder.Rate = order.PricePerUnit
+
 	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
 	if err != nil {
 		ll.WithError(err).Errorf("failed to parse %s", order.Opened)
 	} else {
 		retOrder.CreatedAt = createdAt.Unix()
 	}
+
 	retOrder.CurrencyPair = b.SymbolToCurrencyPair(order.Exchange)
+
 	if order.Type == "LIMIT_BUY" {
 		retOrder.Side = exchange.OrderSideBuy
 	} else if order.Type == "LIMIT_SELL" {
@@ -417,7 +380,7 @@ func (b *Bittrex) GetOrders() ([]*exchange.Order, error) {
 	}
 
 	for _, order := range orders {
-		ret = append(ret, b.convertOpenOrderToExchangeOrder(order.OrderUUID, &order))
+		ret = append(ret, b.convertOrderToExchangeOrder(order.OrderUUID, &order))
 	}
 	return ret, nil
 }
@@ -483,7 +446,27 @@ func (b *Bittrex) getOrder(uuid string) (Order, error) {
 	values.Set("uuid", uuid)
 	path := fmt.Sprintf("%s/%s", bittrexAPIURL, bittrexAPIGetOrder)
 
-	return order, b.HTTPRequest(path, true, values, &order)
+	msg, err := b.HTTPRequestJSON(path, true, values)
+	if err != nil {
+		return order, err
+	}
+	if err = json.Unmarshal(msg, &order); err != nil {
+		return order, err
+	}
+
+	// On orders returned by the /market/getorder endpoint Bittrex stores the order type in a
+	// field named Type instead of OrderType (like for other endpoints).
+	type OrderType struct {
+		Type string
+	}
+	if order.Type == "" {
+		var orderType OrderType
+		if err = json.Unmarshal(msg, &orderType); err != nil {
+			return order, err
+		}
+		order.Type = orderType.Type
+	}
+	return order, nil
 }
 
 // GetOrderHistory is used to retrieve your order history. If currencyPair
@@ -568,20 +551,29 @@ func (b *Bittrex) SendAuthenticatedHTTPRequest(path string, values url.Values, r
 	return nil
 }
 
-// HTTPRequest is a generalised http request function.
-func (b *Bittrex) HTTPRequest(path string, auth bool, values url.Values, v interface{}) error {
+// HTTPRequest sends an HTTP request to a Bittrex API endpoint and and returns the result as raw JSON.
+func (b *Bittrex) HTTPRequestJSON(path string, auth bool, values url.Values) (json.RawMessage, error) {
 	response := Response{}
 	if auth {
 		if err := b.SendAuthenticatedHTTPRequest(path, values, &response); err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		if err := common.SendHTTPGetRequest(path, true, b.Verbose, &response); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if response.Success {
-		return json.Unmarshal(response.Result, &v)
+		return response.Result, nil
 	}
-	return errors.New(response.Message)
+	return nil, errors.New(response.Message)
+}
+
+// HTTPRequest is a generalised http request function.
+func (b *Bittrex) HTTPRequest(path string, auth bool, values url.Values, v interface{}) error {
+	msg, err := b.HTTPRequestJSON(path, auth, values)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(msg, &v)
 }
