@@ -329,7 +329,14 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 	}
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
-	retOrder.Rate = order.PricePerUnit
+
+	// Bittrex doesn't seem to set the PricePerUnit field for orders returned from
+	// /market/getopenorders but it does seem to set the Limit field (for limit buy/sell at least).
+	if order.PricePerUnit > 0 {
+		retOrder.Rate = order.PricePerUnit
+	} else {
+		retOrder.Rate = order.Limit
+	}
 
 	createdAt, err := time.Parse(bittrexTimeFormat, order.Opened)
 	if err != nil {
