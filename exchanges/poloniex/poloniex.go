@@ -531,7 +531,9 @@ func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol stri
 	retOrder.RemainingAmount = order.Amount - order.Total
 	retOrder.Amount = order.Amount
 	retOrder.Rate = order.Rate
-	retOrder.CreatedAt = order.Date.Unix()
+	if order.Date != nil {
+		retOrder.CreatedAt = order.Date.Unix()
+	}
 	retOrder.CurrencyPair = p.SymbolToCurrencyPair(symbol)
 	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
 
