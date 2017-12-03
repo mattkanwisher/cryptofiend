@@ -154,7 +154,7 @@ type PoloniexAuthenticatedTradeHistoryResponse struct {
 
 type PoloniexAuthenticatedOrderTrade struct {
 	GlobalTradeID int64   `json:"globalTradeID"`
-	TradeID       int64   `json:"tradeID,string"`
+	TradeID       int64   `json:"tradeID"`
 	CurrencyPair  string  `json:"currencyPair"`
 	Type          string  `json:"type"`
 	Rate          float64 `json:"rate,string"`
