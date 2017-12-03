@@ -496,7 +496,7 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 			rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 			side = exchange.OrderSide(trade.Type)
 		}
-		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Total))
+		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Amount))
 	}
 
 	var avgRate float64
