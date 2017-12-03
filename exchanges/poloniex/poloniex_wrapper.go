@@ -32,9 +32,9 @@ func (p *Poloniex) Run() {
 		log.Printf("failed to ticker for %s", p.GetName())
 	}
 	p.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(ticker))
-	for currencyStr := range ticker {
-		currencyPair := pair.NewCurrencyPairDelimiter(currencyStr, p.RequestCurrencyPairFormat.Delimiter)
-		p.currencyPairs[pair.CurrencyItem(currencyStr)] = &exchange.CurrencyPairInfo{
+	for symbol := range ticker {
+		currencyPair := p.SymbolToCurrencyPair(symbol)
+		p.currencyPairs[pair.CurrencyItem(symbol)] = &exchange.CurrencyPairInfo{
 			Currency: currencyPair,
 		}
 	}
@@ -84,7 +84,9 @@ func (p *Poloniex) GetOrderbookEx(currencyPair pair.CurrencyPair, assetType stri
 // UpdateOrderbook updates and returns the orderbook for a currency pair
 func (p *Poloniex) UpdateOrderbook(currencyPair pair.CurrencyPair, assetType string) (orderbook.Base, error) {
 	var orderBook orderbook.Base
-	orderbookNew, err := p.GetOrderbook(exchange.FormatExchangeCurrency(p.GetName(), currencyPair).String(), 1000)
+	symbol := p.CurrencyPairToSymbol(currencyPair)
+	orderbookNew, err := p.GetOrderbook(symbol, 1000)
+
 	if err != nil {
 		return orderBook, err
 	}
@@ -120,4 +122,26 @@ func (p *Poloniex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 	return response, nil
+}
+
+// GetEnabledCurrencies returns the enabled currency pairs for the exchange.
+func (p *Poloniex) GetEnabledCurrencies() []pair.CurrencyPair {
+	// Poloniex doesn't follow common conventions for currency pairs, it inverts the
+	// currencies, so invert them again here so they're consistent with the other exchanges.
+	pairs := p.Base.GetEnabledCurrencies()
+	for i := range pairs {
+		pairs[i] = pairs[i].Invert()
+	}
+	return pairs
+}
+
+// GetAvailableCurrencies returns the available currency pairs for the exchange.
+func (p *Poloniex) GetAvailableCurrencies() []pair.CurrencyPair {
+	// Poloniex doesn't follow common conventions for currency pairs, it inverts the
+	// currencies, so invert them again here so they're consistent with the other exchanges.
+	pairs := p.Base.GetAvailableCurrencies()
+	for i := range pairs {
+		pairs[i] = pairs[i].Invert()
+	}
+	return pairs
 }

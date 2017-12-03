@@ -95,6 +95,22 @@ func (p *Poloniex) Setup(exch config.ExchangeConfig) {
 	}
 }
 
+// CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
+func (p *Poloniex) CurrencyPairToSymbol(cp pair.CurrencyPair) string {
+	return cp.
+		// Poloniex symbols are inverted currency pairs
+		Invert().
+		Display(p.RequestCurrencyPairFormat.Delimiter, p.RequestCurrencyPairFormat.Uppercase).
+		String()
+}
+
+// SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
+func (p *Poloniex) SymbolToCurrencyPair(symbol string) pair.CurrencyPair {
+	cp := pair.NewCurrencyPairDelimiter(symbol, p.RequestCurrencyPairFormat.Delimiter)
+	// Poloniex symbols are inverted currency pairs, so invert them here to get a proper currency pair
+	return cp.Invert()
+}
+
 // GetLimits returns price/amount limits for the exchange.
 func (p *Poloniex) GetLimits() exchange.ILimits {
 	return &exchange.DefaultExchangeLimits{}
