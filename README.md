@@ -6,30 +6,43 @@ A set of opionated libraries to make it easy to build your own crypto bots in Go
 [![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/mattkanwisher/cryptofiend/blob/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/mattkanwisher/cryptofiend?status.svg)](https://godoc.org/github.com/mattkanwisher/cryptofiend)
 
+## Currency Pair Conventions
+
+In a currency pair expressed as `XXX/YYY`:
+- `XXX` is the currency that is used to denote the trade amount.
+- `YYY` is the currency that is used to denote the trade rate/price.
+- `/` is one of the common delimiters, other common delimiters include `-` and `_`.
+
+For example the `ETH/BTC` currency pair means that the trade amount is denoted in `ETH`,
+and the trade price is denoted in `BTC` (regardless of whether you're placing a buy or sell order).
+
+Not all exchanges follow these conventions, so `crytofiend` will (eventually) handle such
+differences internally (see `Normalized Currency` column in the table below for current
+status).
 
 ## Exchange Support Table
 
-| Exchange | REST API | Streaming API | FIX API |
-|----------|------|-----------|-----|
-| Alphapoint | Yes  | Yes        | NA  |
-| ANXPRO | Yes  | No        | NA  |
-| Bitfinex | Yes  | Yes        | NA  |
-| Bitstamp | Yes  | Yes       | NA  |
-| Bittrex | Yes | No | NA |
-| BTCC | Yes  | Yes     | No  |
-| BTCMarkets | Yes | NA       | NA  |
-| COINUT | Yes | No | NA |
-| GDAX(Coinbase) | Yes | Yes | No|
-| Gemini | Yes | NA | NA |
-| Huobi | Yes | Yes |No |
-| ItBit | Yes | NA | NA |
-| Kraken | Yes | NA | NA |
-| LakeBTC | Yes | No | NA |
-| Liqui | Yes | No | NA |
-| LocalBitcoins | Yes | NA | NA |
-| OKCoin (both) | Yes | Yes | No |
-| Poloniex | Yes | Yes | NA |
-| WEX     | Yes  | NA        | NA  |
+| Exchange       | REST API | Streaming API | FIX API | Normalized Currency |
+|----------------|----------|---------------|---------|---------------------|
+| Alphapoint     | Yes      | Yes           | NA      | ?                   |
+| ANXPRO         | Yes      | No            | NA      | ?                   |
+| Bitfinex       | Yes      | Yes           | NA      | ?                   |
+| Bitstamp       | Yes      | Yes           | NA      | ?                   |
+| Bittrex        | Yes      | No            | NA      | Yes                 |
+| BTCC           | Yes      | Yes           | No      | ?                   |
+| BTCMarkets     | Yes      | NA            | NA      | ?                   |
+| COINUT         | Yes      | No            | NA      | ?                   |
+| GDAX(Coinbase) | Yes      | Yes           | No      | ?                   |
+| Gemini         | Yes      | NA            | NA      | Yes                 |
+| Huobi          | Yes      | Yes           | No      | ?                   |
+| ItBit          | Yes      | NA            | NA      | ?                   |
+| Kraken         | Yes      | NA            | NA      | ?                   |
+| LakeBTC        | Yes      | No            | NA      | ?                   |
+| Liqui          | Yes      | No            | NA      | Yes                 |
+| LocalBitcoins  | Yes      | NA            | NA      | ?                   |
+| OKCoin (both)  | Yes      | Yes           | No      | ?                   |
+| Poloniex       | Yes      | Yes           | NA      | Yes                 |
+| WEX            | Yes      | NA            | NA      | ?                   |
 
 We are aiming to support the top 20 highest volume exchanges based off the [CoinMarketCap exchange data](https://coinmarketcap.com/exchanges/volume/24-hour/).
 
