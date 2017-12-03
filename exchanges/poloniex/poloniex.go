@@ -491,9 +491,8 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	rateSum := decimal.Zero
 	filledAmount := decimal.Zero
 	for i, trade := range response.Data {
-		// TODO: convert currency pair string to currency pair struct
-		// currencyPair = trade.CurrencyPair
 		if i == 0 {
+			currencyPair = p.SymbolToCurrencyPair(trade.CurrencyPair)
 			rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 			side = exchange.OrderSide(trade.Type)
 		}
@@ -519,7 +518,7 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	return order, nil
 }
 
-func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, currenyPair string) *exchange.Order {
+func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol string) *exchange.Order {
 	retOrder := &exchange.Order{}
 	retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
 
@@ -533,7 +532,7 @@ func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, currenyPair
 	retOrder.Amount = order.Amount
 	retOrder.Rate = order.Rate
 	retOrder.CreatedAt = order.Date.Unix()
-	retOrder.CurrencyPair = pair.NewCurrencyPairFromString(currenyPair)
+	retOrder.CurrencyPair = p.SymbolToCurrencyPair(symbol)
 	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
 
 	return retOrder
@@ -547,9 +546,9 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 		return ret, err
 	}
 
-	for currencyPair, orders := range activeorders.Data {
+	for symbol, orders := range activeorders.Data {
 		for _, order := range orders {
-			retOrder := p.convertOrderToExchangeOrder(order, currencyPair)
+			retOrder := p.convertOrderToExchangeOrder(order, symbol)
 			ret = append(ret, retOrder)
 		}
 	}
@@ -557,7 +556,7 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 }
 
 func (p *Poloniex) NewOrder(
-	symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
+	currencyPair pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
 	orderType exchange.OrderType) (string, error) {
 	/*
 		You may optionally set "fillOrKill", "immediateOrCancel", "postOnly".
@@ -572,8 +571,8 @@ func (p *Poloniex) NewOrder(
 	immediate := false
 	fillOrKill := false
 
-	exchSymbol := exchange.FormatExchangeCurrency(p.Name, symbol).String()
-	response, err := p.PlaceOrder(exchSymbol, price, amount, immediate, fillOrKill, side)
+	symbol := p.CurrencyPairToSymbol(currencyPair)
+	response, err := p.PlaceOrder(symbol, price, amount, immediate, fillOrKill, side)
 
 	if err != nil {
 		return "", err
