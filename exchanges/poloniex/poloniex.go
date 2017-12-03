@@ -948,6 +948,10 @@ func (p *Poloniex) SendAuthenticatedHTTPRequest(method, endpoint string, values 
 		return err
 	}
 
+	if p.Verbose {
+		log.Printf("Received raw: %s\n", resp)
+	}
+
 	err = common.JSONDecode([]byte(resp), &result)
 
 	if err != nil {
