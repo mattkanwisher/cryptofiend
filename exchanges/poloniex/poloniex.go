@@ -618,7 +618,7 @@ func (p *Poloniex) NewOrder(
 func (p *Poloniex) CancelOrder(orderstr string) error {
 	var err error
 	var orderID int64
-	if orderID, err = strconv.ParseInt(orderstr, 10, 64); err == nil {
+	if orderID, err = strconv.ParseInt(orderstr, 10, 64); err != nil {
 		return err
 	}
 	_, err = p.cancelOrder(orderID)
