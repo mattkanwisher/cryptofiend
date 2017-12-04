@@ -66,6 +66,11 @@ const (
 	bitfinexMaxRequests = 90
 )
 
+type rateLimitInfo struct {
+	StartTime    int64
+	RequestCount uint
+}
+
 // Bitfinex is the overarching type across the bitfinex package
 // Notes: Bitfinex has added a rate limit to the number of REST requests.
 // Rate limit policy can vary in a range of 10 to 90 requests per minute
@@ -77,6 +82,9 @@ type Bitfinex struct {
 	// Maps symbol (exchange specific market identifier) to currency pair info
 	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 	symbolDetails map[pair.CurrencyItem]*SymbolDetails
+	rateLimits    map[string]*rateLimitInfo
+	// Cached stuff that's behind rate limited REST API endpoints
+	lastBalances []Balance
 }
 
 // SetDefaults sets the basic defaults for bitfinex
@@ -93,6 +101,8 @@ func (b *Bitfinex) SetDefaults() {
 	b.ConfigCurrencyPairFormat.Uppercase = true
 	b.AssetTypes = []string{ticker.Spot}
 	b.Orderbooks = orderbook.Init()
+	b.rateLimits = map[string]*rateLimitInfo{}
+	b.lastBalances = []Balance{}
 }
 
 // Setup takes in the supplied exchange configuration details and sets params
@@ -341,9 +351,15 @@ func (b *Bitfinex) GetMarginInfo() ([]MarginInfo, error) {
 // GetAccountBalance returns full wallet balance information
 func (b *Bitfinex) GetAccountBalance() ([]Balance, error) {
 	response := []Balance{}
-
-	return response,
-		b.SendAuthenticatedHTTPRequest("POST", bitfinexBalances, nil, &response)
+	sent, err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexBalances, nil, &response)
+	if err != nil {
+		return nil, err
+	}
+	if !sent {
+		return b.lastBalances, nil
+	}
+	b.lastBalances = response
+	return response, nil
 }
 
 // WalletTransfer move available balances between your wallets
@@ -730,4 +746,30 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 		return errors.New("sendAuthenticatedHTTPRequest: Unable to JSON Unmarshal response")
 	}
 	return nil
+}
+
+// SendRateLimitedHTTPRequest sends an HTTP request if the given number of requests per minute
+// hasn't been exceeded for the specified method & path and unmarshals the response into the
+// result and returns true. If the number of requests per minute has been exceeded
+// this method will return false instead.
+func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method, path string, params map[string]interface{},
+	result interface{}) (bool, error) {
+	rateLimit := b.rateLimits[method+path]
+	if rateLimit == nil {
+		rateLimit = &rateLimitInfo{}
+		b.rateLimits[method+path] = rateLimit
+	}
+
+	curTimeStamp := time.Now().Unix()
+	if (rateLimit.StartTime == 0) || ((curTimeStamp - rateLimit.StartTime) > 90) {
+		rateLimit.RequestCount = 0
+		rateLimit.StartTime = curTimeStamp
+	}
+	if rateLimit.RequestCount < requestsPerMin {
+		rateLimit.RequestCount++
+	} else {
+		return false, nil
+	}
+
+	return true, b.SendAuthenticatedHTTPRequest(method, path, params, result)
 }
