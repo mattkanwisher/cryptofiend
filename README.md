@@ -26,7 +26,7 @@ status).
 |----------------|----------|---------------|---------|---------------------|
 | Alphapoint     | Yes      | Yes           | NA      | ?                   |
 | ANXPRO         | Yes      | No            | NA      | ?                   |
-| Bitfinex       | Yes      | Yes           | NA      | ?                   |
+| Bitfinex       | Yes      | Yes           | NA      | Yes                 |
 | Bitstamp       | Yes      | Yes           | NA      | ?                   |
 | Bittrex        | Yes      | No            | NA      | Yes                 |
 | BTCC           | Yes      | Yes           | No      | ?                   |

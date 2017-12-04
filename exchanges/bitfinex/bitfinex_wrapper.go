@@ -28,14 +28,24 @@ func (b *Bitfinex) Run() {
 		go b.WebsocketClient()
 	}
 
-	exchangeProducts, err := b.GetSymbols()
+	symbolsDetails, err := b.GetSymbolsDetails()
 	if err != nil {
 		log.Printf("%s Failed to get available symbols.\n", b.GetName())
-	} else {
-		err = b.UpdateAvailableCurrencies(exchangeProducts, false)
-		if err != nil {
-			log.Printf("%s Failed to get config.\n", b.GetName())
+		return
+	}
+	exchangeProducts := make([]string, len(symbolsDetails))
+	b.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(symbolsDetails))
+	for i, symbolInfo := range symbolsDetails {
+		exchangeProducts[i] = symbolInfo.Pair
+		if currencyPair, err := b.SymbolToCurrencyPair(symbolInfo.Pair); err == nil {
+			b.currencyPairs[pair.CurrencyItem(symbolInfo.Pair)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
+		} else {
+			log.Print("% failed to convert %s to currency pair", b.GetName(), symbolInfo.Pair)
 		}
+	}
+	err = b.UpdateAvailableCurrencies(exchangeProducts, false)
+	if err != nil {
+		log.Printf("%s Failed to get config.\n", b.GetName())
 	}
 }
 
@@ -79,10 +89,11 @@ func (b *Bitfinex) GetOrderbookEx(p pair.CurrencyPair, assetType string) (orderb
 // UpdateOrderbook updates and returns the orderbook for a currency pair
 func (b *Bitfinex) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
 	var orderBook orderbook.Base
-	var vals url.Values
+	vals := url.Values{}
 	vals.Set("limit_bids", "100")
 	vals.Set("limit_asks", "100")
-	orderbookNew, err := b.GetOrderbook(p.Pair().String(), vals)
+	symbol := b.CurrencyPairToSymbol(p)
+	orderbookNew, err := b.GetOrderbook(symbol, vals)
 	if err != nil {
 		return orderBook, err
 	}

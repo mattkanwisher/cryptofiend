@@ -12,7 +12,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
@@ -72,6 +74,8 @@ type Bitfinex struct {
 	exchange.Base
 	WebsocketConn         *websocket.Conn
 	WebsocketSubdChannels map[int]WebsocketChanInfo
+	// Maps symbol (exchange specific market identifier) to currency pair info
+	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 }
 
 // SetDefaults sets the basic defaults for bitfinex
@@ -87,6 +91,7 @@ func (b *Bitfinex) SetDefaults() {
 	b.ConfigCurrencyPairFormat.Delimiter = ""
 	b.ConfigCurrencyPairFormat.Uppercase = true
 	b.AssetTypes = []string{ticker.Spot}
+	b.Orderbooks = orderbook.Init()
 }
 
 // Setup takes in the supplied exchange configuration details and sets params
@@ -112,6 +117,33 @@ func (b *Bitfinex) Setup(exch config.ExchangeConfig) {
 			log.Fatal(err)
 		}
 	}
+}
+
+// CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
+func (b *Bitfinex) CurrencyPairToSymbol(p pair.CurrencyPair) string {
+	return p.
+		Display(b.RequestCurrencyPairFormat.Delimiter, b.RequestCurrencyPairFormat.Uppercase).
+		String()
+}
+
+// SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
+func (b *Bitfinex) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) {
+	if len(symbol) != 6 {
+		return pair.CurrencyPair{}, fmt.Errorf("symbol %s is longer than expected", symbol)
+	}
+	p := pair.NewCurrencyPair(symbol[0:3], symbol[3:])
+	return p.FormatPair(b.RequestCurrencyPairFormat.Delimiter, b.RequestCurrencyPairFormat.Uppercase), nil
+}
+
+// GetLimits returns price/amount limits for the exchange.
+func (b *Bitfinex) GetLimits() exchange.ILimits {
+	return &exchange.DefaultExchangeLimits{}
+}
+
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (b *Bitfinex) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return b.currencyPairs
 }
 
 // GetTicker returns ticker information
@@ -308,9 +340,9 @@ func (b *Bitfinex) Withdrawal(withdrawType, wallet, address string, amount float
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexWithdrawal, request, &response)
 }
 
-// NewOrder submits a new order and returns a order information
+// newOrder submits a new order and returns a order information
 // Major Upgrade needed on this function to include all query params
-func (b *Bitfinex) NewOrder(currencyPair string, amount float64, price float64, side exchange.OrderType, Type string, hidden bool) (Order, error) {
+func (b *Bitfinex) newOrder(currencyPair string, amount float64, price float64, side exchange.OrderType, Type string, hidden bool) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
 	request["symbol"] = currencyPair
@@ -323,6 +355,12 @@ func (b *Bitfinex) NewOrder(currencyPair string, amount float64, price float64, 
 
 	return response,
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderNew, request, &response)
+}
+
+// NewOrder submits a new order and returns the ID of the new exchange order
+func (b *Bitfinex) NewOrder(currencyPair pair.CurrencyPair, amount, price float64,
+	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
+	return "", errors.New("not implemented")
 }
 
 // NewOrderMulti allows several new orders at once
@@ -405,12 +443,21 @@ func (b *Bitfinex) GetOrderStatus(OrderID int64) (Order, error) {
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderStatus, request, &orderStatus)
 }
 
+// GetOrder returns information about the exchange order matching the given ID
+func (b *Bitfinex) GetOrder(orderID string) (*exchange.Order, error) {
+	return nil, errors.New("not implemented")
+}
+
 // GetActiveOrders returns all active orders and statuses
 func (b *Bitfinex) GetActiveOrders() ([]Order, error) {
 	response := []Order{}
 
 	return response,
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrders, nil, &response)
+}
+
+func (b *Bitfinex) GetOrders() ([]*exchange.Order, error) {
+	return nil, errors.New("not implemented")
 }
 
 // GetActivePositions returns an array of active positions
