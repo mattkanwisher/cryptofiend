@@ -50,6 +50,8 @@ const (
 	POLONIEX_ACTIVE_LOANS           = "returnActiveLoans"
 	POLONIEX_LENDING_HISTORY        = "returnLendingHistory"
 	POLONIEX_AUTO_RENEW             = "toggleAutoRenew"
+
+	POLONIEX_TIME_FORMAT = "2006-01-02 15:04:05"
 )
 
 type Poloniex struct {
@@ -486,15 +488,27 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 		return nil, err
 	}
 
+	ll := log.WithField("exchange", p.Name).WithField("orderID", orderID)
+
 	var currencyPair pair.CurrencyPair
 	var side exchange.OrderSide
 	rateSum := decimal.Zero
 	filledAmount := decimal.Zero
+	var lastTradeTimeStamp int64
 	for i, trade := range response.Data {
 		if i == 0 {
 			currencyPair = p.SymbolToCurrencyPair(trade.CurrencyPair)
 			rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 			side = exchange.OrderSide(trade.Type)
+			tradeTime, err := time.Parse(POLONIEX_TIME_FORMAT, trade.Date)
+			if err != nil {
+				ll.WithError(err).Errorf("failed to parse '%s' as a date/time value", trade.Date)
+			} else {
+				tradeTimeStamp := tradeTime.Unix()
+				if tradeTimeStamp > lastTradeTimeStamp {
+					lastTradeTimeStamp = tradeTimeStamp
+				}
+			}
 		}
 		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Amount))
 	}
@@ -508,8 +522,12 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	order := &exchange.Order{
 		CurrencyPair: currencyPair,
 		Side:         side,
+		// There's no way to figure out what the original amount was from the order trades alone.
+		Amount:       0,
 		FilledAmount: orderFilledAmount,
 		Rate:         avgRate,
+		CreatedAt:    lastTradeTimeStamp,
+		// TODO: This is not good enough, what if GetOrder() is used on an active order?
 		// The order could be filled in full or cancelled, if it's cancelled it could be partly
 		// filled or not at all. There isn't enough info to tell for sure!
 		Status:  exchange.OrderStatusAborted,
@@ -519,20 +537,28 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 }
 
 func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol string) *exchange.Order {
+	ll := log.WithField("exchange", p.Name).WithField("orderID", order.OrderNumber)
+
 	retOrder := &exchange.Order{}
 	retOrder.OrderID = strconv.FormatInt(order.OrderNumber, 10)
 
-	//All orders that get returned are active
-	//TODO how to handle canceled orders
+	// All orders that get returned are active
 	retOrder.Status = exchange.OrderStatusActive
 
-	//TODO: verify total is actually correct, its the total filled??
-	retOrder.FilledAmount = order.Total
-	retOrder.RemainingAmount = order.Amount - order.Total
-	retOrder.Amount = order.Amount
+	// TODO: Figure out if order.Amount is the amount filled so far or the remaining amount!
+	retOrder.FilledAmount = order.Amount
+	var isExact bool
+	if retOrder.RemainingAmount, isExact = decimal.NewFromFloat(order.StartingAmount).
+		Sub(decimal.NewFromFloat(order.Amount)).Float64(); !isExact {
+		ll.Warnf("conversion of filled amount to float64 was inexact")
+	}
+	retOrder.Amount = order.StartingAmount
 	retOrder.Rate = order.Rate
-	if order.Date != nil {
-		retOrder.CreatedAt = order.Date.Unix()
+	orderDate, err := time.Parse(POLONIEX_TIME_FORMAT, order.Date)
+	if err != nil {
+		ll.WithError(err).Errorf("failed to parse '%s' as a date/time value", order.Date)
+	} else {
+		retOrder.CreatedAt = orderDate.Unix()
 	}
 	retOrder.CurrencyPair = p.SymbolToCurrencyPair(symbol)
 	retOrder.Side = exchange.OrderSide(order.Type) //no conversion neccessary this exchange uses the word buy/sell
@@ -578,6 +604,9 @@ func (p *Poloniex) NewOrder(
 
 	if err != nil {
 		return "", err
+	}
+	if response.OrderNumber == 0 {
+		log.WithField("exchange", p.GetName()).Warnf("exchange returned zero for exchange order ID")
 	}
 	orderID := strconv.FormatInt(response.OrderNumber, 10)
 	//TODO returns a list of finished trades PoloniexResultingTrades
