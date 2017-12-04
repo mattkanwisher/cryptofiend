@@ -338,7 +338,7 @@ func (b *Bitfinex) NewOrderMulti(orders []PlaceOrder) (OrderMultiResponse, error
 func (b *Bitfinex) CancelOrder(orderStr string) error {
 	var orderID int64
 	var err error
-	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err != nil {
 		return err
 	}
 	_, err = b.cancelOrder(orderID)
