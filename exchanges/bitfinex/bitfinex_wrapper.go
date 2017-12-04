@@ -35,10 +35,13 @@ func (b *Bitfinex) Run() {
 	}
 	exchangeProducts := make([]string, len(symbolsDetails))
 	b.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(symbolsDetails))
-	for i, symbolInfo := range symbolsDetails {
+	b.symbolDetails = make(map[pair.CurrencyItem]*SymbolDetails, len(symbolsDetails))
+	for i := range symbolsDetails {
+		symbolInfo := &symbolsDetails[i]
 		exchangeProducts[i] = symbolInfo.Pair
 		if currencyPair, err := b.SymbolToCurrencyPair(symbolInfo.Pair); err == nil {
 			b.currencyPairs[pair.CurrencyItem(symbolInfo.Pair)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
+			b.symbolDetails[currencyPair.Display("/", false)] = symbolInfo
 		} else {
 			log.Print("% failed to convert %s to currency pair", b.GetName(), symbolInfo.Pair)
 		}

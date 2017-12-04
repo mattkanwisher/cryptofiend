@@ -76,6 +76,7 @@ type Bitfinex struct {
 	WebsocketSubdChannels map[int]WebsocketChanInfo
 	// Maps symbol (exchange specific market identifier) to currency pair info
 	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
+	symbolDetails map[pair.CurrencyItem]*SymbolDetails
 }
 
 // SetDefaults sets the basic defaults for bitfinex
@@ -135,9 +136,45 @@ func (b *Bitfinex) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error
 	return p.FormatPair(b.RequestCurrencyPairFormat.Delimiter, b.RequestCurrencyPairFormat.Uppercase), nil
 }
 
+type currencyLimits struct {
+	exchangeName string
+	// Maps symbol (lower-case) to symbol details
+	data map[pair.CurrencyItem]*SymbolDetails
+}
+
+func newCurrencyLimits(exchangeName string, data map[pair.CurrencyItem]*SymbolDetails) *currencyLimits {
+	return &currencyLimits{exchangeName, data}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return int32(v.PricePrecision)
+	}
+	return 0
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	// API docs don't mention anything about this so make an educated guess...
+	return 8
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return v.MinimumOrderSize
+	}
+	return 0
+}
+
 // GetLimits returns price/amount limits for the exchange.
 func (b *Bitfinex) GetLimits() exchange.ILimits {
-	return &exchange.DefaultExchangeLimits{}
+	return newCurrencyLimits(b.Name, b.symbolDetails)
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.
