@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -351,12 +352,9 @@ func (b *Bitfinex) GetMarginInfo() ([]MarginInfo, error) {
 // GetAccountBalance returns full wallet balance information
 func (b *Bitfinex) GetAccountBalance() ([]Balance, error) {
 	response := []Balance{}
-	sent, err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexBalances, nil, &response)
+	err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexBalances, nil, &response, b.lastBalances)
 	if err != nil {
 		return nil, err
-	}
-	if !sent {
-		return b.lastBalances, nil
 	}
 	b.lastBalances = response
 	return response, nil
@@ -750,10 +748,10 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 
 // SendRateLimitedHTTPRequest sends an HTTP request if the given number of requests per minute
 // hasn't been exceeded for the specified method & path and unmarshals the response into the
-// result and returns true. If the number of requests per minute has been exceeded
-// this method will return false instead.
+// result parameter. If the number of requests per minute has been exceeded this method will
+// set the result to the default value (which can be a pointer, but must not be nil).
 func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method, path string, params map[string]interface{},
-	result interface{}) (bool, error) {
+	result interface{}, defaultValue interface{}) error {
 	rateLimit := b.rateLimits[method+path]
 	if rateLimit == nil {
 		rateLimit = &rateLimitInfo{}
@@ -768,8 +766,22 @@ func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method, path 
 	if rateLimit.RequestCount < requestsPerMin {
 		rateLimit.RequestCount++
 	} else {
-		return false, nil
+		// set result to default value
+		rv := reflect.ValueOf(result)
+		if rv.Kind() != reflect.Ptr || rv.IsNil() {
+			return errors.New("result must be a non-nil pointer")
+		}
+		dv := reflect.ValueOf(defaultValue)
+		if !dv.IsValid() {
+			return errors.New("default value must be not be nil")
+		}
+		if dv.Kind() == reflect.Ptr {
+			reflect.Indirect(rv).Set(dv.Elem())
+		} else {
+			reflect.Indirect(rv).Set(dv)
+		}
+		return nil
 	}
 
-	return true, b.SendAuthenticatedHTTPRequest(method, path, params, result)
+	return b.SendAuthenticatedHTTPRequest(method, path, params, result)
 }
