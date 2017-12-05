@@ -529,7 +529,9 @@ func (b *Bitfinex) convertOrderToExchangeOrder(order *Order) *exchange.Order {
 	retOrder.FilledAmount = order.ExecutedAmount
 	retOrder.RemainingAmount = order.RemainingAmount
 
-	if order.AverageExecutionPrice == 0 {
+	if retOrder.Status == exchange.OrderStatusActive {
+		retOrder.Rate = order.Price
+	} else if order.AverageExecutionPrice == 0 {
 		retOrder.Rate = order.Price
 	} else {
 		retOrder.Rate = order.AverageExecutionPrice
