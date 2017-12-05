@@ -393,10 +393,10 @@ func (b *Bitfinex) Withdrawal(withdrawType, wallet, address string, amount float
 
 // newOrder submits a new order and returns a order information
 // Major Upgrade needed on this function to include all query params
-func (b *Bitfinex) newOrder(currencyPair string, amount float64, price float64, side exchange.OrderType, Type string, hidden bool) (Order, error) {
+func (b *Bitfinex) newOrder(symbol string, amount float64, price float64, side, Type string, hidden bool) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
-	request["symbol"] = currencyPair
+	request["symbol"] = symbol
 	request["amount"] = strconv.FormatFloat(amount, 'f', -1, 64)
 	request["price"] = strconv.FormatFloat(price, 'f', -1, 64)
 	request["exchange"] = "bitfinex"
@@ -411,7 +411,13 @@ func (b *Bitfinex) newOrder(currencyPair string, amount float64, price float64, 
 // NewOrder submits a new order and returns the ID of the new exchange order
 func (b *Bitfinex) NewOrder(currencyPair pair.CurrencyPair, amount, price float64,
 	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
-	return "", errors.New("not implemented")
+	symbol := b.CurrencyPairToSymbol(currencyPair)
+	order, err := b.newOrder(symbol, amount, price, string(side), string(orderType), false)
+	if err != nil {
+		return "", err
+	}
+	orderID := strconv.FormatInt(order.ID, 10)
+	return orderID, nil
 }
 
 // NewOrderMulti allows several new orders at once
@@ -496,7 +502,52 @@ func (b *Bitfinex) GetOrderStatus(OrderID int64) (Order, error) {
 
 // GetOrder returns information about the exchange order matching the given ID
 func (b *Bitfinex) GetOrder(orderID string) (*exchange.Order, error) {
-	return nil, errors.New("not implemented")
+	id, err := strconv.ParseInt(orderID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	order, err := b.GetOrderStatus(id)
+	if err != nil {
+		return nil, err
+	}
+	return b.convertOrderToExchangeOrder(&order), nil
+}
+
+func (b *Bitfinex) convertOrderToExchangeOrder(order *Order) *exchange.Order {
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = strconv.FormatInt(order.ID, 10)
+
+	if order.IsCancelled {
+		retOrder.Status = exchange.OrderStatusAborted
+	} else if order.IsLive {
+		retOrder.Status = exchange.OrderStatusActive
+	} else {
+		retOrder.Status = exchange.OrderStatusFilled
+	}
+
+	retOrder.Amount = order.OriginalAmount
+	retOrder.FilledAmount = order.ExecutedAmount
+	retOrder.RemainingAmount = order.RemainingAmount
+
+	if order.AverageExecutionPrice == 0 {
+		retOrder.Rate = order.Price
+	} else {
+		retOrder.Rate = order.AverageExecutionPrice
+	}
+
+	var createdAt int64
+	// Drop the fractional part of the timestamp, whatever it is.
+	timeParts := strings.Split(order.Timestamp, ".")
+	if len(timeParts) > 0 {
+		createdAt, _ = strconv.ParseInt(timeParts[0], 10, 64)
+	}
+	retOrder.CreatedAt = createdAt
+
+	retOrder.CurrencyPair, _ = b.SymbolToCurrencyPair(order.Symbol)
+	retOrder.Side = exchange.OrderSide(order.Side)
+	retOrder.Type = exchange.OrderType(order.Type)
+
+	return retOrder
 }
 
 // GetActiveOrders returns all active orders and statuses
@@ -508,7 +559,15 @@ func (b *Bitfinex) GetActiveOrders() ([]Order, error) {
 }
 
 func (b *Bitfinex) GetOrders() ([]*exchange.Order, error) {
-	return nil, errors.New("not implemented")
+	orders, err := b.GetActiveOrders()
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*exchange.Order, 0, len(orders))
+	for _, order := range orders {
+		ret = append(ret, b.convertOrderToExchangeOrder(&order))
+	}
+	return ret, nil
 }
 
 // GetActivePositions returns an array of active positions
