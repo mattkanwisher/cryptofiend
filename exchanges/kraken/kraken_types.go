@@ -1,5 +1,19 @@
 package kraken
 
+import "encoding/json"
+
+// Response is the generalised response type for Kraken
+type Response struct {
+	Errors []string        `json:"errors"`
+	Result json.RawMessage `json:"result"`
+}
+
+type KrakenAsset struct {
+	AltName         string `json:"altname"`
+	Decimals        int    `json:"decimals"`
+	DisplayDecimals int    `json:"display_decimals"`
+}
+
 type KrakenAssetPairs struct {
 	Altname           string      `json:"altname"`
 	AclassBase        string      `json:"aclass_base"`

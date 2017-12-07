@@ -1,6 +1,7 @@
 package kraken
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -109,34 +110,26 @@ func (k *Kraken) GetServerTime() error {
 	return nil
 }
 
-func (k *Kraken) GetAssets() error {
-	var result interface{}
+func (k *Kraken) GetAssets() (map[string]KrakenAsset, error) {
+	var result map[string]KrakenAsset
 	path := fmt.Sprintf("%s/%s/public/%s", KRAKEN_API_URL, KRAKEN_API_VERSION, KRAKEN_ASSETS)
-	err := common.SendHTTPGetRequest(path, true, k.Verbose, &result)
-
-	if err != nil {
-		return err
-	}
-
-	log.Println(result)
-	return nil
-}
-
-func (k *Kraken) GetAssetPairs() (map[string]KrakenAssetPairs, error) {
-	type Response struct {
-		Result map[string]KrakenAssetPairs `json:"result"`
-		Error  []interface{}               `json:"error"`
-	}
-
-	response := Response{}
-	path := fmt.Sprintf("%s/%s/public/%s", KRAKEN_API_URL, KRAKEN_API_VERSION, KRAKEN_ASSET_PAIRS)
-	err := common.SendHTTPGetRequest(path, true, k.Verbose, &response)
+	err := k.HTTPRequest(path, false, url.Values{}, &result)
 
 	if err != nil {
 		return nil, err
 	}
+	return result, nil
+}
 
-	return response.Result, nil
+func (k *Kraken) GetAssetPairs() (map[string]KrakenAssetPairs, error) {
+	var result map[string]KrakenAssetPairs
+	path := fmt.Sprintf("%s/%s/public/%s", KRAKEN_API_URL, KRAKEN_API_VERSION, KRAKEN_ASSET_PAIRS)
+	err := k.HTTPRequest(path, false, url.Values{}, &result)
+
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (k *Kraken) GetTicker(symbol string) error {
@@ -281,18 +274,16 @@ func (k *Kraken) GetSpread(symbol string) {
 	}
 }
 
-func (k *Kraken) GetBalance() {
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_BALANCE, url.Values{})
-
+func (k *Kraken) GetBalance() error {
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_BALANCE, true, url.Values{}, &result)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
-
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) GetTradeBalance(symbol, asset string) {
+func (k *Kraken) GetTradeBalance(symbol, asset string) error {
 	values := url.Values{}
 
 	if len(symbol) > 0 {
@@ -303,14 +294,14 @@ func (k *Kraken) GetTradeBalance(symbol, asset string) {
 		values.Set("asset", asset)
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_TRADE_BALANCE, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_TRADE_BALANCE, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
 func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) {
@@ -324,7 +315,8 @@ func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) {
 		values.Set("userref", strconv.FormatInt(userref, 10))
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_OPEN_ORDERS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_OPEN_ORDERS, true, values, &result)
 
 	if err != nil {
 		log.Println(err)
@@ -334,7 +326,7 @@ func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) {
 	log.Println(result)
 }
 
-func (k *Kraken) GetClosedOrders(showTrades bool, userref, start, end, offset int64, closetime string) {
+func (k *Kraken) GetClosedOrders(showTrades bool, userref, start, end, offset int64, closetime string) error {
 	values := url.Values{}
 
 	if showTrades {
@@ -361,17 +353,17 @@ func (k *Kraken) GetClosedOrders(showTrades bool, userref, start, end, offset in
 		values.Set("closetime", closetime)
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_CLOSED_ORDERS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_CLOSED_ORDERS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) QueryOrdersInfo(showTrades bool, userref, txid int64) {
+func (k *Kraken) QueryOrdersInfo(showTrades bool, userref, txid int64) error {
 	values := url.Values{}
 
 	if showTrades {
@@ -386,17 +378,17 @@ func (k *Kraken) QueryOrdersInfo(showTrades bool, userref, txid int64) {
 		values.Set("txid", strconv.FormatInt(userref, 10))
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_QUERY_ORDERS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_QUERY_ORDERS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) GetTradesHistory(tradeType string, showRelatedTrades bool, start, end, offset int64) {
+func (k *Kraken) GetTradesHistory(tradeType string, showRelatedTrades bool, start, end, offset int64) error {
 	values := url.Values{}
 
 	if len(tradeType) > 0 {
@@ -419,17 +411,17 @@ func (k *Kraken) GetTradesHistory(tradeType string, showRelatedTrades bool, star
 		values.Set("offset", strconv.FormatInt(offset, 10))
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_TRADES_HISTORY, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_TRADES_HISTORY, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) QueryTrades(txid int64, showRelatedTrades bool) {
+func (k *Kraken) QueryTrades(txid int64, showRelatedTrades bool) error {
 	values := url.Values{}
 	values.Set("txid", strconv.FormatInt(txid, 10))
 
@@ -437,17 +429,17 @@ func (k *Kraken) QueryTrades(txid int64, showRelatedTrades bool) {
 		values.Set("trades", "true")
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_QUERY_TRADES, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_QUERY_TRADES, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) OpenPositions(txid int64, showPL bool) {
+func (k *Kraken) OpenPositions(txid int64, showPL bool) error {
 	values := url.Values{}
 	values.Set("txid", strconv.FormatInt(txid, 10))
 
@@ -455,17 +447,17 @@ func (k *Kraken) OpenPositions(txid int64, showPL bool) {
 		values.Set("docalcs", "true")
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_OPEN_POSITIONS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_OPEN_POSITIONS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) GetLedgers(symbol, asset, ledgerType string, start, end, offset int64) {
+func (k *Kraken) GetLedgers(symbol, asset, ledgerType string, start, end, offset int64) error {
 	values := url.Values{}
 
 	if len(symbol) > 0 {
@@ -492,45 +484,45 @@ func (k *Kraken) GetLedgers(symbol, asset, ledgerType string, start, end, offset
 		values.Set("offset", strconv.FormatInt(offset, 10))
 	}
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_LEDGERS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_LEDGERS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) QueryLedgers(id string) {
+func (k *Kraken) QueryLedgers(id string) error {
 	values := url.Values{}
 	values.Set("id", id)
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_QUERY_LEDGERS, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_QUERY_LEDGERS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) GetTradeVolume(symbol string) {
+func (k *Kraken) GetTradeVolume(symbol string) error {
 	values := url.Values{}
 	values.Set("pair", symbol)
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_TRADE_VOLUME, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_TRADE_VOLUME, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
-func (k *Kraken) AddOrder(symbol, side, orderType string, price, price2, volume, leverage, position float64) {
+func (k *Kraken) AddOrder(symbol, side, orderType string, price, price2, volume, leverage, position float64) error {
 	values := url.Values{}
 	values.Set("pairs", symbol)
 	values.Set("type", side)
@@ -541,14 +533,14 @@ func (k *Kraken) AddOrder(symbol, side, orderType string, price, price2, volume,
 	values.Set("leverage", strconv.FormatFloat(leverage, 'f', -1, 64))
 	values.Set("position", strconv.FormatFloat(position, 'f', -1, 64))
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_ORDER_PLACE, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_ORDER_PLACE, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 
-	log.Println(result)
+	panic("not implemented")
 }
 
 func (k *Kraken) CancelOrder(orderStr string) error {
@@ -559,7 +551,7 @@ func (k *Kraken) CancelOrder(orderStr string) error {
 	}
 	return k.cancelOrder(orderID)
 }
-func (k *Kraken) NewOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
+func (k *Kraken) newOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
 	panic("not implemented")
 }
 
@@ -567,20 +559,19 @@ func (k *Kraken) cancelOrder(orderID int64) error {
 	values := url.Values{}
 	values.Set("txid", strconv.FormatInt(orderID, 10))
 
-	result, err := k.SendAuthenticatedHTTPRequest(KRAKEN_ORDER_CANCEL, values)
+	var result interface{}
+	err := k.HTTPRequest(KRAKEN_ORDER_CANCEL, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
-	log.Println(result)
-	return nil
+	panic("not implemented")
 }
 
-func (k *Kraken) SendAuthenticatedHTTPRequest(method string, values url.Values) (interface{}, error) {
+func (k *Kraken) SendAuthenticatedHTTPRequest(method string, values url.Values, result interface{}) error {
 	if !k.AuthenticatedAPISupport {
-		return nil, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, k.Name)
+		return fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, k.Name)
 	}
 
 	path := fmt.Sprintf("/%s/private/%s", KRAKEN_API_VERSION, method)
@@ -594,7 +585,7 @@ func (k *Kraken) SendAuthenticatedHTTPRequest(method string, values url.Values) 
 	secret, err := common.Base64Decode(k.APISecret)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	shasum := common.GetSHA256([]byte(values.Get("nonce") + values.Encode()))
@@ -611,12 +602,44 @@ func (k *Kraken) SendAuthenticatedHTTPRequest(method string, values url.Values) 
 	resp, err := common.SendHTTPRequest("POST", KRAKEN_API_URL+path, headers, strings.NewReader(values.Encode()))
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if k.Verbose {
 		log.Printf("Received raw: \n%s\n", resp)
 	}
 
-	return resp, nil
+	err = common.JSONDecode([]byte(resp), &result)
+	if err != nil {
+		return errors.New("Unable to JSON Unmarshal response." + err.Error())
+	}
+
+	return nil
+}
+
+// HTTPRequestJSON sends an HTTP request to a Kraken API endpoint and and returns the result as raw JSON.
+func (k *Kraken) HTTPRequestJSON(path string, auth bool, values url.Values) (json.RawMessage, error) {
+	response := Response{}
+	if auth {
+		if err := k.SendAuthenticatedHTTPRequest(path, values, &response); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := common.SendHTTPGetRequest(path, true, k.Verbose, &response); err != nil {
+			return nil, err
+		}
+	}
+	if len(response.Errors) > 0 {
+		return response.Result, errors.New(strings.Join(response.Errors, "\n"))
+	}
+	return response.Result, nil
+}
+
+// HTTPRequest is a generalized http request function.
+func (k *Kraken) HTTPRequest(path string, auth bool, values url.Values, v interface{}) error {
+	result, err := k.HTTPRequestJSON(path, auth, values)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(result, &v)
 }
