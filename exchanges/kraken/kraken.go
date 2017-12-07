@@ -133,6 +133,32 @@ func (k *Kraken) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) 
 	return p.FormatPair(k.RequestCurrencyPairFormat.Delimiter, k.RequestCurrencyPairFormat.Uppercase), nil
 }
 
+// GetLimits returns price/amount limits for the exchange.
+func (k *Kraken) GetLimits() exchange.ILimits {
+	return &exchange.DefaultExchangeLimits{}
+}
+
+// Returns currency pairs that can be used by the exchange account associated with this bot.
+// Use FormatExchangeCurrency to get the right key.
+func (k *Kraken) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
+	return nil
+}
+
+// GetOrder returns information about the exchange order matching the given ID
+func (k *Kraken) GetOrder(orderID string) (*exchange.Order, error) {
+	panic("not implemented")
+}
+
+func (k *Kraken) GetOrders() ([]*exchange.Order, error) {
+	panic("not implemented")
+}
+
+// NewOrder submits a new order and returns the ID of the new exchange order
+func (k *Kraken) NewOrder(currencyPair pair.CurrencyPair, amount, price float64,
+	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
+	panic("not implemented")
+}
+
 func (k *Kraken) GetFee(cryptoTrade bool) float64 {
 	if cryptoTrade {
 		return k.CryptoFee
