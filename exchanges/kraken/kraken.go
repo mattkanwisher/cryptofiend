@@ -16,6 +16,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -42,6 +43,18 @@ const (
 	KRAKEN_TRADE_VOLUME   = "TradeVolume"
 	KRAKEN_ORDER_CANCEL   = "CancelOrder"
 	KRAKEN_ORDER_PLACE    = "AddOrder"
+)
+
+const (
+	OrderStatusPending   = "pending"
+	OrderStatusOpen      = "open"
+	OrderStatusClosed    = "closed"
+	OrderStatusCancelled = "canceled"
+	OrderStatusExpired   = "expired"
+)
+
+const (
+	OrderTypeLimit = "limit"
 )
 
 type Kraken struct {
@@ -199,10 +212,62 @@ func (k *Kraken) GetOrders() ([]*exchange.Order, error) {
 	}
 
 	ret := []*exchange.Order{}
-	for orderID, _ := range orders {
-		ret = append(ret, &exchange.Order{OrderID: orderID})
+	for orderID, order := range orders {
+		exchangeOrder, err := k.convertOrderToExchangeOrder(orderID, &order)
+		if err != nil {
+			log.Print(err)
+		} else {
+			ret = append(ret, exchangeOrder)
+		}
 	}
 	return ret, nil
+}
+
+func (k *Kraken) convertOrderToExchangeOrder(orderID string, order *Order) (*exchange.Order, error) {
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = orderID
+
+	switch order.Status {
+	case OrderStatusPending, OrderStatusOpen:
+		retOrder.Status = exchange.OrderStatusActive
+	case OrderStatusCancelled, OrderStatusExpired:
+		retOrder.Status = exchange.OrderStatusAborted
+	case OrderStatusClosed:
+		retOrder.Status = exchange.OrderStatusFilled
+	default:
+		return nil, fmt.Errorf("unsupported order with status '%s'", order.Status)
+	}
+
+	retOrder.Amount = order.Volume
+	retOrder.FilledAmount = order.VolumeExecuted
+	retOrder.RemainingAmount, _ = decimal.NewFromFloat(order.Volume).
+		Sub(decimal.NewFromFloat(order.VolumeExecuted)).Float64()
+
+	if retOrder.Status == exchange.OrderStatusActive {
+		retOrder.Rate = order.Info.Price
+	} else if order.AvgPrice == 0 {
+		retOrder.Rate = order.Info.Price
+	} else {
+		retOrder.Rate = order.AvgPrice
+	}
+
+	var createdAt int64
+	// Drop the fractional part of the timestamp, whatever it is.
+	timeParts := strings.Split(order.OpenTimestamp, ".")
+	if len(timeParts) > 0 {
+		createdAt, _ = strconv.ParseInt(timeParts[0], 10, 64)
+	}
+	retOrder.CreatedAt = createdAt
+
+	retOrder.CurrencyPair, _ = k.SymbolToCurrencyPair(order.Info.Pair)
+	retOrder.Side = exchange.OrderSide(order.Info.Side)
+	if order.Info.Type == OrderTypeLimit {
+		retOrder.Type = exchange.OrderTypeExchangeLimit
+	} else {
+		return nil, fmt.Errorf("unsupported order with type '%s'", order.Info.Type)
+	}
+
+	return retOrder, nil
 }
 
 // NewOrder submits a new order and returns the ID of the new exchange order
@@ -443,7 +508,7 @@ func (k *Kraken) GetTradeBalance(symbol, asset string) error {
 	panic("not implemented")
 }
 
-func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) (map[string]KrakenOrder, error) {
+func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) (map[string]Order, error) {
 	values := url.Values{}
 
 	if showTrades {
@@ -455,7 +520,7 @@ func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) (map[string]Krake
 	}
 
 	type OpenOrdersResponse struct {
-		Open map[string]KrakenOrder `json:"open"`
+		Open map[string]Order `json:"open"`
 	}
 	var result OpenOrdersResponse
 	err := k.HTTPRequest(KRAKEN_OPEN_ORDERS, true, values, &result)
@@ -705,9 +770,6 @@ func (k *Kraken) CancelOrder(orderStr string) error {
 		return err
 	}
 	return k.cancelOrder(orderID)
-}
-func (k *Kraken) newOrder(symbol string, amount, price float64, side, orderType string) (int64, error) {
-	panic("not implemented")
 }
 
 func (k *Kraken) cancelOrder(orderID int64) error {
