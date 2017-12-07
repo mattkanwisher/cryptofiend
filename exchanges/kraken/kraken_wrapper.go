@@ -42,6 +42,7 @@ func (k *Kraken) Run() {
 
 	k.CurrencyPairCodeToSymbol = make(map[pair.CurrencyItem]string, len(assetPairs))
 	k.CurrencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(assetPairs))
+	k.PriceDecimalPlaces = make(map[pair.CurrencyItem]int32, len(assetPairs))
 	var exchangeProducts []string
 	for assetPairName, assetPairInfo := range assetPairs {
 		exchangeProducts = append(exchangeProducts, assetPairInfo.Altname)
@@ -61,8 +62,11 @@ func (k *Kraken) Run() {
 		}
 		currencyPair := pair.NewCurrencyPair(c1, c2).
 			FormatPair(k.RequestCurrencyPairFormat.Delimiter, k.RequestCurrencyPairFormat.Uppercase)
-		k.CurrencyPairCodeToSymbol[currencyPair.Display("/", true)] = assetPairName
+		currencyPairCode := currencyPair.Display("/", true)
+		k.CurrencyPairCodeToSymbol[currencyPairCode] = assetPairName
 		k.CurrencyPairs[pair.CurrencyItem(assetPairName)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
+		k.PriceDecimalPlaces[currencyPairCode] = int32(assetPairInfo.PairDecimals)
+
 	}
 	err = k.UpdateAvailableCurrencies(exchangeProducts, false)
 	if err != nil {

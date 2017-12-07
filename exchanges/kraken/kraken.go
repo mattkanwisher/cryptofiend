@@ -52,6 +52,9 @@ type Kraken struct {
 	CurrencyPairCodeToSymbol map[pair.CurrencyItem]string
 	// Maps symbol (exchange specific market identifier) to currency pair info
 	CurrencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
+	// Maps a currency pair of the form XXX/YYY to max num of decimal places
+	// Kraken allows to be specified for the price of orders placed for the currency pair.
+	PriceDecimalPlaces map[pair.CurrencyItem]int32
 }
 
 func (k *Kraken) SetDefaults() {
@@ -117,9 +120,65 @@ func (k *Kraken) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) 
 		fmt.Errorf("failed to map Kraken asset pair '%s' to a currency pair", symbol)
 }
 
+type currencyLimits struct {
+	exchangeName       string
+	priceDecimalPlaces map[pair.CurrencyItem]int32
+}
+
+// Source: https://support.kraken.com/hc/en-us/articles/205893708-What-is-the-minimum-order-size-
+var minTradeSizes = map[pair.CurrencyItem]float64{
+	"REP":  0.3,
+	"XBT":  0.002,
+	"BCH":  0.002,
+	"DASH": 0.03,
+	"DOGE": 3000,
+	"EOS":  3,
+	"ETH":  0.02,
+	"ETC":  0.3,
+	"GNO":  0.03,
+	"ICN":  2,
+	"LTC":  0.1,
+	"MLN":  0.1,
+	"XMR":  0.1,
+	"XRP":  30,
+	"XLM":  300,
+	"ZEC":  0.03,
+	"USDT": 5,
+}
+
+func newCurrencyLimits(exchangeName string, priceDecimalPlaces map[pair.CurrencyItem]int32) *currencyLimits {
+	return &currencyLimits{exchangeName, priceDecimalPlaces}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := p.Display("/", true)
+	if v, exists := cl.priceDecimalPlaces[k]; exists {
+		return v
+	}
+	return -1
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	// API docs don't mention anything about this so make an educated guess...
+	return 8
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := p.FirstCurrency.Upper()
+	if v, exists := minTradeSizes[k]; exists {
+		return v
+	}
+	return 0
+}
+
 // GetLimits returns price/amount limits for the exchange.
 func (k *Kraken) GetLimits() exchange.ILimits {
-	return &exchange.DefaultExchangeLimits{}
+	return newCurrencyLimits(k.Name, k.PriceDecimalPlaces)
 }
 
 // Returns currency pairs that can be used by the exchange account associated with this bot.
