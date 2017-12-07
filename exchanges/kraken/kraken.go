@@ -13,6 +13,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
+	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
 )
 
@@ -63,6 +64,7 @@ func (k *Kraken) SetDefaults() {
 	k.ConfigCurrencyPairFormat.Delimiter = ""
 	k.ConfigCurrencyPairFormat.Uppercase = true
 	k.AssetTypes = []string{ticker.Spot}
+	k.Orderbooks = orderbook.Init()
 }
 
 func (k *Kraken) Setup(exch config.ExchangeConfig) {
