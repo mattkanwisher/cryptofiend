@@ -48,10 +48,10 @@ type Kraken struct {
 	exchange.Base
 	CryptoFee, FiatFee float64
 	Ticker             map[string]KrakenTicker
-	// Maps currency code to Kraken asset name, e.g. LTC->XLTC
-	CurrencyToAssetName map[string]string
-	// Maps Kraken asset name to currency code, e.g. XLTC->LTC
-	AssetNameToCurrency map[string]string
+	// Maps a currency pair of the form XXX/YYY to a symbol (exchange specific market identifier)
+	CurrencyPairCodeToSymbol map[pair.CurrencyItem]string
+	// Maps symbol (exchange specific market identifier) to currency pair info
+	CurrencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 }
 
 func (k *Kraken) SetDefaults() {
@@ -98,39 +98,23 @@ func (k *Kraken) Setup(exch config.ExchangeConfig) {
 
 // CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
 func (k *Kraken) CurrencyPairToSymbol(p pair.CurrencyPair) (string, error) {
-	firstCurrency, secondCurrency := p.FirstCurrency.String(), p.SecondCurrency.String()
-	a1, exists := k.CurrencyToAssetName[firstCurrency]
-	if !exists {
-		return "", fmt.Errorf("failed to map currency code '%s' to a Kraken asset name", firstCurrency)
+	currencyPairCode := p.Display("/", true)
+	if symbol, exists := k.CurrencyPairCodeToSymbol[currencyPairCode]; exists {
+		return symbol, nil
 	}
-	a2, exists := k.CurrencyToAssetName[secondCurrency]
-	if !exists {
-		return "", fmt.Errorf("failed to map currency code '%s' to a Kraken asset name", secondCurrency)
-	}
-	if k.RequestCurrencyPairFormat.Uppercase {
-		return strings.ToUpper(a1) + strings.ToUpper(a2), nil
-	}
-	return strings.ToLower(a1) + strings.ToLower(a2), nil
+	return "", fmt.Errorf("failed to map currency pair '%s' to a Kraken asset pair", currencyPairCode)
 }
 
 // SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
 func (k *Kraken) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) {
-	if len(symbol) != 8 {
-		return pair.CurrencyPair{}, fmt.Errorf("symbol '%s' doesn't have the expected length", symbol)
+	if info, exists := k.CurrencyPairs[pair.CurrencyItem(symbol)]; exists {
+		return info.Currency.FormatPair(
+			k.RequestCurrencyPairFormat.Delimiter,
+			k.RequestCurrencyPairFormat.Uppercase,
+		), nil
 	}
-	firstAssetName, secondAssetName := symbol[0:4], symbol[4:]
-	c1, exists := k.AssetNameToCurrency[firstAssetName]
-	if !exists {
-		return pair.CurrencyPair{},
-			fmt.Errorf("failed to map Kraken asset name '%s' to a currency code", firstAssetName)
-	}
-	c2, exists := k.AssetNameToCurrency[secondAssetName]
-	if !exists {
-		return pair.CurrencyPair{},
-			fmt.Errorf("failed to map Kraken asset name '%s' to a currency code", secondAssetName)
-	}
-	p := pair.NewCurrencyPair(c1, c2)
-	return p.FormatPair(k.RequestCurrencyPairFormat.Delimiter, k.RequestCurrencyPairFormat.Uppercase), nil
+	return pair.CurrencyPair{},
+		fmt.Errorf("failed to map Kraken asset pair '%s' to a currency pair", symbol)
 }
 
 // GetLimits returns price/amount limits for the exchange.
@@ -141,7 +125,7 @@ func (k *Kraken) GetLimits() exchange.ILimits {
 // Returns currency pairs that can be used by the exchange account associated with this bot.
 // Use FormatExchangeCurrency to get the right key.
 func (k *Kraken) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
-	return nil
+	return k.CurrencyPairs
 }
 
 // GetOrder returns information about the exchange order matching the given ID

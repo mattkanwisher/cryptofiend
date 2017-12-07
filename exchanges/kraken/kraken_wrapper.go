@@ -2,6 +2,7 @@ package kraken
 
 import (
 	"log"
+	"strings"
 
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
@@ -23,28 +24,49 @@ func (k *Kraken) Run() {
 
 	assets, err := k.GetAssets()
 	if err != nil {
-		log.Printf("%s failed to fetch assets\n", k.Name)
+		log.Printf("failed to fetch assets from %s\n", k.Name)
 		return
 	}
-	k.CurrencyToAssetName = make(map[string]string, len(assets))
-	k.AssetNameToCurrency = make(map[string]string, len(assets))
+	// Map Kraken asset name to currency code, e.g. XLTC->LTC
+	// TODO: should probably map XXBT->BTC instead of XXBT->XBT for consistency with other exchanges
+	assetNameToCurrency := make(map[string]string, len(assets))
 	for assetName, assetInfo := range assets {
-		k.CurrencyToAssetName[assetInfo.AltName] = assetName
-		k.AssetNameToCurrency[assetName] = assetInfo.AltName
+		assetNameToCurrency[assetName] = assetInfo.AltName
 	}
 
 	assetPairs, err := k.GetAssetPairs()
 	if err != nil {
-		log.Printf("%s Failed to get available symbols.\n", k.GetName())
-	} else {
-		var exchangeProducts []string
-		for _, v := range assetPairs {
-			exchangeProducts = append(exchangeProducts, v.Altname)
+		log.Printf("failed to fetch asset pairs from %s\n", k.GetName())
+		return
+	}
+
+	k.CurrencyPairCodeToSymbol = make(map[pair.CurrencyItem]string, len(assetPairs))
+	k.CurrencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(assetPairs))
+	var exchangeProducts []string
+	for assetPairName, assetPairInfo := range assetPairs {
+		exchangeProducts = append(exchangeProducts, assetPairInfo.Altname)
+		// Skip the dark pool asset pairs for now
+		if strings.HasSuffix(assetPairName, ".d") {
+			continue
 		}
-		err = k.UpdateAvailableCurrencies(exchangeProducts, false)
-		if err != nil {
-			log.Printf("%s Failed to get config.\n", k.GetName())
+		c1, exists := assetNameToCurrency[assetPairInfo.Base]
+		if !exists {
+			log.Printf("failed to map Kraken asset name '%s' to a currency code", assetPairInfo.Base)
+			continue
 		}
+		c2, exists := assetNameToCurrency[assetPairInfo.Quote]
+		if !exists {
+			log.Printf("failed to map Kraken asset name '%s' to a currency code", assetPairInfo.Quote)
+			continue
+		}
+		currencyPair := pair.NewCurrencyPair(c1, c2).
+			FormatPair(k.RequestCurrencyPairFormat.Delimiter, k.RequestCurrencyPairFormat.Uppercase)
+		k.CurrencyPairCodeToSymbol[currencyPair.Display("/", true)] = assetPairName
+		k.CurrencyPairs[pair.CurrencyItem(assetPairName)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
+	}
+	err = k.UpdateAvailableCurrencies(exchangeProducts, false)
+	if err != nil {
+		log.Printf("%s Failed to get config.\n", k.GetName())
 	}
 }
 
