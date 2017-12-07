@@ -68,3 +68,38 @@ type KrakenTickerResponse struct {
 	High   []string `json:"h"`
 	Open   string   `json:"o"`
 }
+
+type KrakenOrderDescInfo struct {
+	Pair      string  `json:"pair"`
+	Side      string  `json:"type"`
+	Type      string  `json:"ordertype"`
+	Price     float64 `json:"price,string"`
+	Price2    float64 `json:"price2,string"`
+	OrderDesc string  `json:"order"`
+	CloseDesc string  `json:"close"`
+}
+
+type KrakenOrder struct {
+	RefID           string              `json:"refid"`
+	UserRef         string              `json:"userref"`
+	Status          string              `json:"status"`
+	OpenTimestamp   string              `json:"opentm"`
+	StartTimestamp  string              `json:"starttm"`
+	ExpireTimestamp string              `json:"expiretm"`
+	Info            KrakenOrderDescInfo `json:"descr"`
+	Volume          float64             `json:"vol,string"`
+	VolumeExecuted  float64             `json:"vol_exec,string"`
+	Cost            float64             `json:"cost,string"`
+	Fee             float64             `json:"fee,string"`
+	AvgPrice        float64             `json:"price,string"`
+	StopPrice       float64             `json:"stopprice,string"`
+	LimitPrice      float64             `json:"limitprice,string"`
+	Misc            string              `json:"misc"`
+	Flags           string              `json:"oflags"`
+	TradeIDs        []string            `json:"trades"`
+}
+
+type AddOrderResult struct {
+	Info           KrakenOrderDescInfo `json:"descr"`
+	TransactionIDs []string            `json:"txid"`
+}

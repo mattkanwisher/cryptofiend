@@ -134,13 +134,39 @@ func (k *Kraken) GetOrder(orderID string) (*exchange.Order, error) {
 }
 
 func (k *Kraken) GetOrders() ([]*exchange.Order, error) {
-	panic("not implemented")
+	orders, err := k.GetOpenOrders(false, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []*exchange.Order{}
+	for orderID, _ := range orders {
+		ret = append(ret, &exchange.Order{OrderID: orderID})
+	}
+	return ret, nil
 }
 
 // NewOrder submits a new order and returns the ID of the new exchange order
 func (k *Kraken) NewOrder(currencyPair pair.CurrencyPair, amount, price float64,
 	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
-	panic("not implemented")
+	symbol, err := k.CurrencyPairToSymbol(currencyPair)
+	if err != nil {
+		return "", err
+	}
+	result, err := k.AddOrder(AddOrderParams{
+		Pair:         symbol,
+		Side:         side,
+		Type:         orderType,
+		Price:        price,
+		Volume:       amount,
+		UserRef:      0,
+		OnlyValidate: true,
+	})
+	if err != nil {
+		return "", err
+	}
+	// TODO: figure out where the freaking order ID is
+	return result.TransactionIDs[0], nil
 }
 
 func (k *Kraken) GetFee(cryptoTrade bool) float64 {
@@ -358,7 +384,7 @@ func (k *Kraken) GetTradeBalance(symbol, asset string) error {
 	panic("not implemented")
 }
 
-func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) {
+func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) (map[string]KrakenOrder, error) {
 	values := url.Values{}
 
 	if showTrades {
@@ -369,15 +395,16 @@ func (k *Kraken) GetOpenOrders(showTrades bool, userref int64) {
 		values.Set("userref", strconv.FormatInt(userref, 10))
 	}
 
-	var result interface{}
+	type OpenOrdersResponse struct {
+		Open map[string]KrakenOrder `json:"open"`
+	}
+	var result OpenOrdersResponse
 	err := k.HTTPRequest(KRAKEN_OPEN_ORDERS, true, values, &result)
 
 	if err != nil {
-		log.Println(err)
-		return
+		return nil, err
 	}
-
-	log.Println(result)
+	return result.Open, nil
 }
 
 func (k *Kraken) GetClosedOrders(showTrades bool, userref, start, end, offset int64, closetime string) error {
@@ -576,31 +603,46 @@ func (k *Kraken) GetTradeVolume(symbol string) error {
 	panic("not implemented")
 }
 
-func (k *Kraken) AddOrder(symbol, side, orderType string, price, price2, volume, leverage, position float64) error {
-	values := url.Values{}
-	values.Set("pairs", symbol)
-	values.Set("type", side)
-	values.Set("ordertype", orderType)
-	values.Set("price", strconv.FormatFloat(price, 'f', -1, 64))
-	values.Set("price2", strconv.FormatFloat(price, 'f', -1, 64))
-	values.Set("volume", strconv.FormatFloat(volume, 'f', -1, 64))
-	values.Set("leverage", strconv.FormatFloat(leverage, 'f', -1, 64))
-	values.Set("position", strconv.FormatFloat(position, 'f', -1, 64))
+type AddOrderParams struct {
+	Pair         string
+	Side         exchange.OrderSide
+	Type         exchange.OrderType
+	Price        float64
+	Volume       float64
+	UserRef      int32
+	OnlyValidate bool
+}
 
-	var result interface{}
+func (k *Kraken) AddOrder(params AddOrderParams) (*AddOrderResult, error) {
+	values := url.Values{}
+	values.Set("pair", params.Pair)
+	values.Set("type", string(params.Side))
+
+	if params.Type == exchange.OrderTypeExchangeLimit {
+		values.Set("ordertype", "limit")
+	} else {
+		return nil, fmt.Errorf("support for '%s' orders hasn't been implemented")
+	}
+
+	values.Set("price", strconv.FormatFloat(params.Price, 'f', -1, 64))
+	values.Set("volume", strconv.FormatFloat(params.Volume, 'f', -1, 64))
+	if params.OnlyValidate {
+		values.Set("validate", "true")
+	}
+
+	var result AddOrderResult
 	err := k.HTTPRequest(KRAKEN_ORDER_PLACE, true, values, &result)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	panic("not implemented")
+	return &result, nil
 }
 
 func (k *Kraken) CancelOrder(orderStr string) error {
 	var orderID int64
 	var err error
-	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err == nil {
+	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err != nil {
 		return err
 	}
 	return k.cancelOrder(orderID)
