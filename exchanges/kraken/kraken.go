@@ -12,6 +12,7 @@ import (
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
+	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
@@ -47,6 +48,10 @@ type Kraken struct {
 	exchange.Base
 	CryptoFee, FiatFee float64
 	Ticker             map[string]KrakenTicker
+	// Maps currency code to Kraken asset name, e.g. LTC->XLTC
+	CurrencyToAssetName map[string]string
+	// Maps Kraken asset name to currency code, e.g. XLTC->LTC
+	AssetNameToCurrency map[string]string
 }
 
 func (k *Kraken) SetDefaults() {
@@ -89,6 +94,43 @@ func (k *Kraken) Setup(exch config.ExchangeConfig) {
 			log.Fatal(err)
 		}
 	}
+}
+
+// CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
+func (k *Kraken) CurrencyPairToSymbol(p pair.CurrencyPair) (string, error) {
+	firstCurrency, secondCurrency := p.FirstCurrency.String(), p.SecondCurrency.String()
+	a1, exists := k.CurrencyToAssetName[firstCurrency]
+	if !exists {
+		return "", fmt.Errorf("failed to map currency code '%s' to a Kraken asset name", firstCurrency)
+	}
+	a2, exists := k.CurrencyToAssetName[secondCurrency]
+	if !exists {
+		return "", fmt.Errorf("failed to map currency code '%s' to a Kraken asset name", secondCurrency)
+	}
+	if k.RequestCurrencyPairFormat.Uppercase {
+		return strings.ToUpper(a1) + strings.ToUpper(a2), nil
+	}
+	return strings.ToLower(a1) + strings.ToLower(a2), nil
+}
+
+// SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
+func (k *Kraken) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) {
+	if len(symbol) != 8 {
+		return pair.CurrencyPair{}, fmt.Errorf("symbol '%s' doesn't have the expected length", symbol)
+	}
+	firstAssetName, secondAssetName := symbol[0:4], symbol[4:]
+	c1, exists := k.AssetNameToCurrency[firstAssetName]
+	if !exists {
+		return pair.CurrencyPair{},
+			fmt.Errorf("failed to map Kraken asset name '%s' to a currency code", firstAssetName)
+	}
+	c2, exists := k.AssetNameToCurrency[secondAssetName]
+	if !exists {
+		return pair.CurrencyPair{},
+			fmt.Errorf("failed to map Kraken asset name '%s' to a currency code", secondAssetName)
+	}
+	p := pair.NewCurrencyPair(c1, c2)
+	return p.FormatPair(k.RequestCurrencyPairFormat.Delimiter, k.RequestCurrencyPairFormat.Uppercase), nil
 }
 
 func (k *Kraken) GetFee(cryptoTrade bool) float64 {

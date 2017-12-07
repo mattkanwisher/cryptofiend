@@ -21,6 +21,18 @@ func (k *Kraken) Run() {
 		log.Printf("%s %d currencies enabled: %s.\n", k.GetName(), len(k.EnabledPairs), k.EnabledPairs)
 	}
 
+	assets, err := k.GetAssets()
+	if err != nil {
+		log.Printf("%s failed to fetch assets\n", k.Name)
+		return
+	}
+	k.CurrencyToAssetName = make(map[string]string, len(assets))
+	k.AssetNameToCurrency = make(map[string]string, len(assets))
+	for assetName, assetInfo := range assets {
+		k.CurrencyToAssetName[assetInfo.AltName] = assetName
+		k.AssetNameToCurrency[assetName] = assetInfo.AltName
+	}
+
 	assetPairs, err := k.GetAssetPairs()
 	if err != nil {
 		log.Printf("%s Failed to get available symbols.\n", k.GetName())
