@@ -546,10 +546,9 @@ func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol stri
 	// All orders that get returned are active
 	retOrder.Status = exchange.OrderStatusActive
 
-	// TODO: Figure out if order.Amount is the amount filled so far or the remaining amount!
-	retOrder.FilledAmount = order.Amount
+	retOrder.RemainingAmount = order.Amount
 	var isExact bool
-	if retOrder.RemainingAmount, isExact = decimal.NewFromFloat(order.StartingAmount).
+	if retOrder.FilledAmount, isExact = decimal.NewFromFloat(order.StartingAmount).
 		Sub(decimal.NewFromFloat(order.Amount)).Float64(); !isExact {
 		ll.Warnf("conversion of filled amount to float64 was inexact")
 	}
