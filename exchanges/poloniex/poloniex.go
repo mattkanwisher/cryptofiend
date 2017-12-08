@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mattkanwisher/cryptofiend/common"
@@ -481,10 +482,10 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 
 func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	response, err := p.GetOrderTrades(orderID)
-	// TODO: figure out what kind of errors are returned when the order isn't found vs there are
-	// no trades for the order... the former error we should propagate to the caller, the latter
-	// should be swallowed.
 	if err != nil {
+		if strings.HasPrefix(strings.ToLower(err.Error()), "order not found") {
+			return nil, errors.New(exchange.ErrOrderNotFound)
+		}
 		return nil, err
 	}
 

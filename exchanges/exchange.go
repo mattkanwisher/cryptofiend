@@ -19,6 +19,8 @@ const (
 	WarningAuthenticatedRequestWithoutCredentialsSet = "WARNING -- Exchange %s authenticated HTTP request called but not supported due to unset/default API keys."
 	// ErrExchangeNotFound is a constant for an error message
 	ErrExchangeNotFound = "Exchange not found in dataset."
+	// ErrExchangeOrderNotFound is one of the possible errors returned by IBotExchangeEx.GetOrder()
+	ErrOrderNotFound = "Exchange order not found."
 )
 
 // AccountInfo is a Generic type to hold each exchange's holdings in
