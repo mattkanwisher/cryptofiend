@@ -499,7 +499,6 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	for i, trade := range response.Data {
 		if i == 0 {
 			currencyPair = p.SymbolToCurrencyPair(trade.CurrencyPair)
-			rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 			side = exchange.OrderSide(trade.Type)
 			tradeTime, err := time.Parse(POLONIEX_TIME_FORMAT, trade.Date)
 			if err != nil {
@@ -511,6 +510,7 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 				}
 			}
 		}
+		rateSum = rateSum.Add(decimal.NewFromFloat(trade.Rate))
 		filledAmount = filledAmount.Add(decimal.NewFromFloat(trade.Amount))
 	}
 
