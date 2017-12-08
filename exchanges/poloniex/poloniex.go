@@ -983,8 +983,17 @@ func (p *Poloniex) SendAuthenticatedHTTPRequest(method, endpoint string, values 
 		log.Printf("Received raw: %s\n", resp)
 	}
 
-	err = common.JSONDecode([]byte(resp), &result)
+	type ErrorCapture struct {
+		Message string `json:"error"`
+	}
+	errResp := ErrorCapture{}
+	if err = common.JSONDecode([]byte(resp), &errResp); err == nil {
+		if len(errResp.Message) != 0 {
+			return errors.New(errResp.Message)
+		}
+	}
 
+	err = common.JSONDecode([]byte(resp), &result)
 	if err != nil {
 		return errors.New("Unable to JSON Unmarshal response.")
 	}
