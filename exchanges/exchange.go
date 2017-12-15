@@ -46,6 +46,7 @@ const (
 )
 const (
 	OrderTypeExchangeLimit OrderType = "exchange limit"
+	OrderTypeMarginLimit             = "margin limit"
 )
 
 type OrderStatus string

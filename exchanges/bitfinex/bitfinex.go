@@ -412,7 +412,18 @@ func (b *Bitfinex) newOrder(symbol string, amount float64, price float64, side, 
 func (b *Bitfinex) NewOrder(currencyPair pair.CurrencyPair, amount, price float64,
 	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
 	symbol := b.CurrencyPairToSymbol(currencyPair)
-	order, err := b.newOrder(symbol, amount, price, string(side), string(orderType), false)
+
+	var bitfinexOrderType string
+	switch orderType {
+	case exchange.OrderTypeMarginLimit:
+		bitfinexOrderType = "limit"
+	case exchange.OrderTypeExchangeLimit:
+		bitfinexOrderType = "exchange limit"
+	default:
+		return "", fmt.Errorf("'%s' order type not currently supported for this exchange", string(orderType))
+	}
+
+	order, err := b.newOrder(symbol, amount, price, string(side), bitfinexOrderType, false)
 	if err != nil {
 		return "", err
 	}
