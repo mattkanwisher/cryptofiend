@@ -322,11 +322,8 @@ func (b *Bittrex) convertOrderToExchangeOrder(orderID string, order *Order) *exc
 		retOrder.Status = exchange.OrderStatusActive
 	}
 
-	var isExact bool
-	if retOrder.FilledAmount, isExact = decimal.NewFromFloat(order.Quantity).
-		Sub(decimal.NewFromFloat(order.QuantityRemaining)).Float64(); !isExact {
-		ll.Warnf("conversion of filled amount to float64 was inexact")
-	}
+	retOrder.FilledAmount, _ = decimal.NewFromFloat(order.Quantity).
+		Sub(decimal.NewFromFloat(order.QuantityRemaining)).Float64()
 	retOrder.RemainingAmount = order.QuantityRemaining
 	retOrder.Amount = order.Quantity
 
