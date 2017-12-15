@@ -552,11 +552,8 @@ func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol stri
 		retOrder.FilledAmount = order.Amount
 	}
 
-	var isExact bool
-	if retOrder.RemainingAmount, isExact = decimal.NewFromFloat(order.StartingAmount).
-		Sub(decimal.NewFromFloat(retOrder.FilledAmount)).Float64(); !isExact {
-		ll.Warnf("conversion of filled amount to float64 was inexact")
-	}
+	retOrder.RemainingAmount, _ = decimal.NewFromFloat(order.StartingAmount).
+		Sub(decimal.NewFromFloat(retOrder.FilledAmount)).Float64()
 	retOrder.Amount = order.StartingAmount
 	retOrder.Rate = order.Rate
 	orderDate, err := time.Parse(POLONIEX_TIME_FORMAT, order.Date)
