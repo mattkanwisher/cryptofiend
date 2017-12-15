@@ -303,6 +303,50 @@ func SendHTTPRequest(method, path string, headers map[string]string, body io.Rea
 	return string(contents), nil
 }
 
+// SendHTTPRequest2 sends an HTTP request.
+// Returns the response body and status code, or an error.
+func SendHTTPRequest2(method, path string, headers http.Header, body io.Reader) (string, int, error) {
+	upperMethod := strings.ToUpper(method)
+
+	if upperMethod != "POST" && upperMethod != "GET" && upperMethod != "DELETE" {
+		return "", 0, errors.New("invalid HTTP method specified")
+	}
+
+	req, err := http.NewRequest(upperMethod, path, body)
+
+	if err != nil {
+		return "", 0, err
+	}
+
+	req.Header = headers
+
+	requestDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(requestDump))
+
+	timeout := time.Duration(3 * time.Second)
+	if upperMethod == "POST" {
+		timeout = time.Duration(15 * time.Second)
+	}
+	httpClient := &http.Client{Timeout: timeout}
+	resp, err := httpClient.Do(req)
+
+	if err != nil {
+		return "", 0, err
+	}
+
+	contents, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	if err != nil {
+		return "", 0, err
+	}
+
+	return string(contents), resp.StatusCode, nil
+}
+
 // SendHTTPGetRequest sends a simple get request using a url string & JSON
 // decodes the response into a struct pointer you have supplied. Returns an error
 // on failure.

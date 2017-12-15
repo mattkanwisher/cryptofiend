@@ -1,9 +1,11 @@
 package bitfinex
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -20,51 +22,60 @@ import (
 )
 
 const (
-	bitfinexAPIURL             = "https://api.bitfinex.com/v1/"
-	bitfinexAPIVersion         = "1"
-	bitfinexTicker             = "pubticker/"
-	bitfinexStats              = "stats/"
-	bitfinexLendbook           = "lendbook/"
-	bitfinexOrderbook          = "book/"
-	bitfinexTrades             = "trades/"
-	bitfinexKeyPermissions     = "key_info"
-	bitfinexLends              = "lends/"
-	bitfinexSymbols            = "symbols/"
-	bitfinexSymbolsDetails     = "symbols_details/"
-	bitfinexAccountInfo        = "account_infos"
-	bitfinexAccountFees        = "account_fees"
-	bitfinexAccountSummary     = "summary"
-	bitfinexDeposit            = "deposit/new"
-	bitfinexOrderNew           = "order/new"
-	bitfinexOrderNewMulti      = "order/new/multi"
-	bitfinexOrderCancel        = "order/cancel"
-	bitfinexOrderCancelMulti   = "order/cancel/multi"
-	bitfinexOrderCancelAll     = "order/cancel/all"
-	bitfinexOrderCancelReplace = "order/cancel/replace"
-	bitfinexOrderStatus        = "order/status"
-	bitfinexOrders             = "orders"
-	bitfinexPositions          = "positions"
-	bitfinexClaimPosition      = "position/claim"
-	bitfinexHistory            = "history"
-	bitfinexHistoryMovements   = "history/movements"
-	bitfinexTradeHistory       = "mytrades"
-	bitfinexOfferNew           = "offer/new"
-	bitfinexOfferCancel        = "offer/cancel"
-	bitfinexOfferStatus        = "offer/status"
-	bitfinexOffers             = "offers"
-	bitfinexMarginActiveFunds  = "taken_funds"
-	bitfinexMarginTotalFunds   = "total_taken_funds"
-	bitfinexMarginUnusedFunds  = "unused_taken_funds"
-	bitfinexMarginClose        = "funding/close"
-	bitfinexBalances           = "balances"
-	bitfinexMarginInfo         = "margin_infos"
-	bitfinexTransfer           = "transfer"
-	bitfinexWithdrawal         = "withdraw"
-	bitfinexActiveCredits      = "credits"
+	bitfinexAPIURL                   = "https://api.bitfinex.com/v1/"
+	bitfinexAPIVersion1        uint8 = 1
+	bitfinexTicker                   = "pubticker/"
+	bitfinexStats                    = "stats/"
+	bitfinexLendbook                 = "lendbook/"
+	bitfinexOrderbook                = "book/"
+	bitfinexTrades                   = "trades/"
+	bitfinexKeyPermissions           = "key_info"
+	bitfinexLends                    = "lends/"
+	bitfinexSymbols                  = "symbols/"
+	bitfinexSymbolsDetails           = "symbols_details/"
+	bitfinexAccountInfo              = "account_infos"
+	bitfinexAccountFees              = "account_fees"
+	bitfinexAccountSummary           = "summary"
+	bitfinexDeposit                  = "deposit/new"
+	bitfinexOrderNew                 = "order/new"
+	bitfinexOrderNewMulti            = "order/new/multi"
+	bitfinexOrderCancel              = "order/cancel"
+	bitfinexOrderCancelMulti         = "order/cancel/multi"
+	bitfinexOrderCancelAll           = "order/cancel/all"
+	bitfinexOrderCancelReplace       = "order/cancel/replace"
+	bitfinexOrderStatus              = "order/status"
+	bitfinexOrders                   = "orders"
+	bitfinexPositions                = "positions"
+	bitfinexClaimPosition            = "position/claim"
+	bitfinexHistory                  = "history"
+	bitfinexHistoryMovements         = "history/movements"
+	bitfinexTradeHistory             = "mytrades"
+	bitfinexOfferNew                 = "offer/new"
+	bitfinexOfferCancel              = "offer/cancel"
+	bitfinexOfferStatus              = "offer/status"
+	bitfinexOffers                   = "offers"
+	bitfinexMarginActiveFunds        = "taken_funds"
+	bitfinexMarginTotalFunds         = "total_taken_funds"
+	bitfinexMarginUnusedFunds        = "unused_taken_funds"
+	bitfinexMarginClose              = "funding/close"
+	bitfinexBalances                 = "balances"
+	bitfinexMarginInfo               = "margin_infos"
+	bitfinexTransfer                 = "transfer"
+	bitfinexWithdrawal               = "withdraw"
+	bitfinexActiveCredits            = "credits"
+
+	bitfinexAPI2URL                    = "https://api.bitfinex.com/v2/"
+	bitfinexAPIVersion2          uint8 = 2
+	bitfinexCalcAvailableBalance       = "auth/calc/order/avail"
 
 	// bitfinexMaxRequests if exceeded IP address blocked 10-60 sec, JSON response
 	// {"error": "ERR_RATE_LIMIT"}
 	bitfinexMaxRequests = 90
+)
+
+// Error codes that may be returned by SendAuthenticatedHTTPRequest2
+const (
+	InvalidAPIKeyErrCode = 10100
 )
 
 type rateLimitInfo struct {
@@ -352,12 +363,44 @@ func (b *Bitfinex) GetMarginInfo() ([]MarginInfo, error) {
 // GetAccountBalance returns full wallet balance information
 func (b *Bitfinex) GetAccountBalance() ([]Balance, error) {
 	response := []Balance{}
-	err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexBalances, nil, &response, b.lastBalances)
+	err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexAPIVersion1, bitfinexBalances, nil, &response, b.lastBalances)
 	if err != nil {
 		return nil, err
 	}
 	b.lastBalances = response
 	return response, nil
+}
+
+func (b *Bitfinex) CalcAvailableBalance(
+	symbol string, side exchange.OrderSide, rate float64, orderType exchange.OrderType) (float64, error) {
+	params := make(map[string]interface{})
+
+	if side == exchange.OrderSideBuy {
+		params["dir"] = 1
+	} else {
+		params["dir"] = -1
+	}
+	params["rate"] = rate
+
+	switch orderType {
+	case exchange.OrderTypeExchangeLimit:
+		params["symbol"] = symbol
+		params["type"] = "EXCHANGE"
+	case exchange.OrderTypeMarginLimit:
+		params["symbol"] = "t" + symbol
+		params["type"] = "MARGIN"
+	default:
+		return 0.0, errors.New("invalid order type")
+	}
+
+	var availableAmt []float64
+	defVal := []float64{0.0}
+	err := b.SendRateLimitedHTTPRequest(10, "POST", bitfinexAPIVersion2, bitfinexCalcAvailableBalance,
+		params, &availableAmt, defVal)
+	if err != nil {
+		return 0.0, err
+	}
+	return availableAmt[0], nil
 }
 
 // WalletTransfer move available balances between your wallets
@@ -770,7 +813,7 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 
 	respErr := ErrorCapture{}
 	request := make(map[string]interface{})
-	request["request"] = fmt.Sprintf("/v%s/%s", bitfinexAPIVersion, path)
+	request["request"] = fmt.Sprintf("/v%d/%s", bitfinexAPIVersion1, path)
 	request["nonce"] = b.Nonce.String()
 
 	if params != nil {
@@ -818,12 +861,86 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 	return nil
 }
 
+// SendAuthenticatedHTTPRequest2 sends a POST request to an authenticated endpoint, the response is
+// decoded into the result object.
+// Returns the Bitfinex error code and error message (if any).
+func (b *Bitfinex) SendAuthenticatedHTTPRequest2(method, path string, params map[string]interface{},
+	result interface{}) (int, error) {
+	if !b.AuthenticatedAPISupport {
+		return 0, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, b.Name)
+	}
+
+	if b.Nonce.Get() == 0 {
+		b.Nonce.Set(time.Now().UnixNano())
+	} else {
+		b.Nonce.Inc()
+	}
+
+	nonce := b.Nonce.String()
+	payloadJSON, err := common.JSONEncode(params)
+	if err != nil {
+		return 0, errors.New("SendAuthenticatedHTTPRequest2: Unable to JSON request")
+	}
+
+	if b.Verbose {
+		log.Printf("Request JSON: %s\n", payloadJSON)
+	}
+
+	payload := "/api/v2/" + path + nonce + string(payloadJSON)
+	hmac := common.GetHMAC(common.HashSHA512_384, []byte(payload), []byte(b.APISecret))
+	headers := make(http.Header)
+	headers["Content-Type"] = []string{"application/json"}
+	headers["Accept"] = []string{"application/json"}
+	headers["bfx-nonce"] = []string{nonce}
+	headers["bfx-apikey"] = []string{b.APIKey}
+	headers["bfx-signature"] = []string{common.HexEncodeToString(hmac)}
+
+	resp, statusCode, err := common.SendHTTPRequest2(method, bitfinexAPI2URL+path, headers, bytes.NewReader(payloadJSON))
+	if err != nil {
+		return 0, err
+	}
+
+	if b.Verbose {
+		log.Printf("Received raw: \n%s\n", resp)
+	}
+
+	if 200 <= statusCode && statusCode <= 299 {
+		if err = common.JSONDecode([]byte(resp), &result); err != nil {
+			return statusCode, errors.New("SendAuthenticatedHTTPRequest2: Unable to JSON Unmarshal response")
+		}
+	} else {
+		var errResp []interface{}
+		if err = common.JSONDecode([]byte(resp), &errResp); err == nil {
+			if len(errResp) < 3 {
+				return 0, fmt.Errorf("Expected response to have three elements but got %#v", errResp)
+			}
+
+			if str, ok := errResp[0].(string); !ok || str != "error" {
+				return 0, fmt.Errorf("Expected first element to be \"error\" but got %#v", errResp)
+			}
+
+			code, ok := errResp[1].(float64)
+			if !ok {
+				return 0, fmt.Errorf("Expected second element to be error code but got %#v", errResp)
+			}
+
+			msg, ok := errResp[2].(string)
+			if !ok {
+				return 0, fmt.Errorf("Expected third element to be error message but got %#v", errResp)
+			}
+			return int(code), errors.New(msg)
+		}
+	}
+
+	return 0, nil
+}
+
 // SendRateLimitedHTTPRequest sends an HTTP request if the given number of requests per minute
 // hasn't been exceeded for the specified method & path and unmarshals the response into the
 // result parameter. If the number of requests per minute has been exceeded this method will
 // set the result to the default value (which can be a pointer, but must not be nil).
-func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method, path string, params map[string]interface{},
-	result interface{}, defaultValue interface{}) error {
+func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method string, apiVersion uint8,
+	path string, params map[string]interface{}, result interface{}, defaultValue interface{}) error {
 	rateLimit := b.rateLimits[method+path]
 	if rateLimit == nil {
 		rateLimit = &rateLimitInfo{}
@@ -855,5 +972,13 @@ func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method, path 
 		return nil
 	}
 
-	return b.SendAuthenticatedHTTPRequest(method, path, params, result)
+	switch apiVersion {
+	case bitfinexAPIVersion1:
+		return b.SendAuthenticatedHTTPRequest(method, path, params, result)
+	case bitfinexAPIVersion2:
+		_, err := b.SendAuthenticatedHTTPRequest2(method, path, params, result)
+		return err
+	default:
+		return errors.New("invalid API version")
+	}
 }
