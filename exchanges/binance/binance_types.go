@@ -126,3 +126,10 @@ type SymbolInfo struct {
 	Iceberg             bool               `json:"icebergAllowed"`
 	Filters             []SymbolInfoFilter `json:"filters"`
 }
+
+type PostOrderAckResponse struct {
+	Symbol        string `json:"symbol"`
+	OrderID       int64  `json:"orderId"`
+	ClientOrderID string `json:"clientOrderId"`
+	TransactTime  int64  `json:"transactTime"`
+}

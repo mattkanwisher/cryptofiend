@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ const (
 	binanceExchangeInfoPath = "api/v1/exchangeInfo"
 	binanceAccountPath      = "api/v3/account"
 	binanceOpenOrders       = "api/v3/openOrders"
+	binancePostOrder        = "api/v3/order"
+	binancePostOrderTest    = "api/v3/order/test"
 )
 
 type rateLimitInfo struct {
@@ -72,6 +75,49 @@ func (b *Binance) GetOpenOrders() ([]Order, error) {
 	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
 	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOpenOrders, nil, &response)
 	return response, err
+}
+
+type PostOrderParams struct {
+	Symbol           string
+	Side             OrderSide
+	Type             OrderType
+	TimeInForce      TimeInForce
+	Quantity         float64
+	Price            float64
+	NewClientOrderID string
+	StopPrice        float64
+	IcebergQty       float64
+	// Set to true to submit the order to the test endpoint for validation,
+	// it won't be sent to the exchange matching engine.
+	ValidateOnly bool
+}
+
+func (b *Binance) PostOrderAck(params *PostOrderParams) (*PostOrderAckResponse, error) {
+	v := url.Values{}
+	v.Set("symbol", params.Symbol)
+	v.Set("side", string(params.Side))
+	v.Set("type", string(params.Type))
+	v.Set("timeInForce", string(params.TimeInForce))
+	v.Set("quantity", strconv.FormatFloat(params.Quantity, 'f', -1, 64))
+	v.Set("price", strconv.FormatFloat(params.Price, 'f', -1, 64))
+	if params.NewClientOrderID != "" {
+		v.Set("newClientOrderId", params.NewClientOrderID)
+	}
+	if params.StopPrice != 0 {
+		v.Set("stopPrice", strconv.FormatFloat(params.StopPrice, 'f', -1, 64))
+	}
+	if params.IcebergQty != 0 {
+		v.Set("icebergQty", strconv.FormatFloat(params.IcebergQty, 'f', -1, 64))
+	}
+	v.Set("newOrderRespType", "ACK")
+
+	response := PostOrderAckResponse{}
+	path := binancePostOrder
+	if params.ValidateOnly {
+		path = binancePostOrderTest
+	}
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodPost, path, v, &response)
+	return &response, err
 }
 
 // SendAuthenticatedHTTPRequest sends a POST request to an authenticated endpoint, the response is

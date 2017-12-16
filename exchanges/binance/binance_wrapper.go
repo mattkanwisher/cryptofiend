@@ -140,9 +140,26 @@ func (b *Binance) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 // NewOrder creates a new order on the exchange.
 // Returns the ID of the new exchange order, or an empty string if the order was filled
 // immediately but no ID was generated.
-func (b *Binance) NewOrder(symbol pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
+func (b *Binance) NewOrder(p pair.CurrencyPair, amount, price float64, side exchange.OrderSide,
 	orderType exchange.OrderType) (string, error) {
-	panic("not implemented")
+	var newOrderType OrderType
+	if orderType == exchange.OrderTypeExchangeLimit {
+		newOrderType = OrderTypeLimit
+	} else {
+		panic("not implemented")
+	}
+	result, err := b.PostOrderAck(&PostOrderParams{
+		Symbol:      b.CurrencyPairToSymbol(p),
+		Side:        OrderSide(strings.ToUpper(string(side))),
+		Type:        newOrderType,
+		TimeInForce: TimeInForceGTC,
+		Quantity:    amount,
+		Price:       price,
+	})
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatInt(result.OrderID, 10), nil
 }
 
 // CancelOrder will attempt to cancel the active order matching the given ID.
