@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	binanceBaseURL      = "https://www.binance.com/"
-	binanceExchangeInfo = "api/v1/exchangeInfo"
+	binanceBaseURL          = "https://www.binance.com/"
+	binanceExchangeInfoPath = "api/v1/exchangeInfo"
+	binanceAccountPath      = "api/v3/account"
 )
 
 type rateLimitInfo struct {
@@ -43,7 +44,14 @@ func (b *Binance) CurrencyPairToSymbol(p pair.CurrencyPair) string {
 // Fetches current exchange trading rules and symbol information.
 func (b *Binance) GetExchangeInfo() (*ExchangeInfo, error) {
 	response := ExchangeInfo{}
-	err := common.SendHTTPGetRequest(binanceBaseURL+binanceExchangeInfo, true, b.Verbose, &response)
+	err := common.SendHTTPGetRequest(binanceBaseURL+binanceExchangeInfoPath, true, b.Verbose, &response)
+	return &response, err
+}
+
+// Fetches current account information.
+func (b *Binance) GetAccountInfo() (*AccountInfo, error) {
+	response := AccountInfo{}
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceAccountPath, nil, &response)
 	return &response, err
 }
 
@@ -62,7 +70,10 @@ func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.V
 
 	recvWindow := 5000
 	timestamp := time.Now().UnixNano() / (1000 * 1000) // must be in milliseconds
-	payload := params.Encode() + fmt.Sprintf("&timestamp=%v&recvWindow=%d", timestamp, recvWindow)
+	payload := fmt.Sprintf("timestamp=%v&recvWindow=%d", timestamp, recvWindow)
+	if params != nil {
+		payload = fmt.Sprintf("%s&%s", params.Encode(), payload)
+	}
 	hmac := common.GetHMAC(common.HashSHA256, []byte(payload), []byte(b.APISecret))
 	headers := make(http.Header)
 	headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
@@ -70,7 +81,17 @@ func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.V
 	headers["X-MBX-APIKEY"] = []string{b.APIKey}
 	payload = fmt.Sprintf("%s&signature=%s", payload, hex.EncodeToString(hmac))
 
-	resp, statusCode, err := common.SendHTTPRequest2(method, binanceBaseURL+path, headers, strings.NewReader(payload))
+	var resp string
+	var statusCode int
+	var err error
+	if method == http.MethodGet {
+		resp, statusCode, err = common.SendHTTPRequest2(
+			method, fmt.Sprintf("%s%s?%s", binanceBaseURL, path, payload), headers, nil)
+	} else {
+		resp, statusCode, err = common.SendHTTPRequest2(method,
+			binanceBaseURL+path, headers, strings.NewReader(payload))
+	}
+
 	if err != nil {
 		return 0, err
 	}
@@ -88,6 +109,7 @@ func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.V
 		if err = common.JSONDecode([]byte(resp), &errInfo); err != nil {
 			return 0, errors.New("failed to unmarshal error info")
 		}
+		return int(errInfo.Code), errors.New(errInfo.Message)
 	}
 
 	return 0, nil

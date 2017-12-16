@@ -9,6 +9,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 )
 
 // SetDefaults sets the basic defaults for Binance
@@ -113,7 +114,25 @@ func (b *Binance) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderb
 // GetExchangeAccountInfo retrieves balances for all enabled currencies on the
 // Binance exchange
 func (b *Binance) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
-	panic("not implemented")
+	result := exchange.AccountInfo{}
+	result.ExchangeName = b.Name
+
+	if !b.Enabled {
+		return result, nil
+	}
+
+	accountInfo, err := b.GetAccountInfo()
+	if err != nil {
+		return result, err
+	}
+	result.Currencies = make([]exchange.AccountCurrencyInfo, len(accountInfo.Balances))
+	for i, src := range accountInfo.Balances {
+		dest := &result.Currencies[i]
+		dest.CurrencyName = src.Asset
+		dest.Hold = src.Locked
+		dest.TotalValue, _ = decimal.NewFromFloat(src.Free).Add(decimal.NewFromFloat(src.Locked)).Float64()
+	}
+	return result, nil
 }
 
 // NewOrder creates a new order on the exchange.

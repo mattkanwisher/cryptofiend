@@ -5,6 +5,23 @@ type ErrorInfo struct {
 	Message string `json:"msg"`
 }
 
+type Balance struct {
+	Asset  string  `json:"asset"`
+	Free   float64 `json:"free,string"`
+	Locked float64 `json:"locked,string"`
+}
+
+type AccountInfo struct {
+	MakerCommission  int        `json:"makerCommission"`
+	TakerCommission  int        `json:"takerCommission"`
+	BuyerCommission  int        `json:"buyerCommission"`
+	SellerCommission int        `json:"sellerCommission"`
+	CanTrade         bool       `json:"canTrade"`
+	CanWithdraw      bool       `json:"canWithdraw"`
+	CanDeposit       bool       `json:"canDeposit"`
+	Balances         []*Balance `json:"balances"`
+}
+
 type OrderType string
 
 const (
