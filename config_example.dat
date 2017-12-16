@@ -76,6 +76,26 @@
    }
   },
   {
+   "Name": "Binance",
+   "Enabled": true,
+   "Verbose": false,
+   "Websocket": false,
+   "RESTPollingDelay": 10,
+   "AuthenticatedAPISupport": false,
+   "APIKey": "Key",
+   "APISecret": "Secret",
+   "AvailablePairs": "ETHBTC",
+   "EnabledPairs": "ETHBTC",
+   "BaseCurrencies": "",
+   "AssetTypes": "SPOT",
+   "ConfigCurrencyPairFormat": {
+    "Uppercase": true
+   },
+   "RequestCurrencyPairFormat": {
+    "Uppercase": true
+   }
+  },
+  {
    "Name": "Bitfinex",
    "Enabled": true,
    "Verbose": false,

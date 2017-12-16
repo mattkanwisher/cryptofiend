@@ -127,8 +127,11 @@ type IBotExchangeEx interface {
 	// Returns the ID of the new exchange order, or an empty string if the order was filled
 	// immediately but no ID was generated.
 	NewOrder(symbol pair.CurrencyPair, amount, price float64, side OrderSide, orderType OrderType) (string, error)
+	// CancelOrder will attempt to cancel the active order matching the given ID.
 	CancelOrder(OrderID string) error
+	// GetOrder returns information about a previously placed order (which may be active or inactive).
 	GetOrder(orderID string) (*Order, error)
+	// GetOrders returns information about currently active orders.
 	GetOrders() ([]*Order, error)
 	// GetLimits returns price/amount limits for the exchange.
 	GetLimits() ILimits
