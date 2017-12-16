@@ -380,14 +380,13 @@ func (b *Bitfinex) CalcAvailableBalance(
 	} else {
 		params["dir"] = -1
 	}
+	params["symbol"] = "t" + symbol
 	params["rate"] = rate
 
 	switch orderType {
 	case exchange.OrderTypeExchangeLimit:
-		params["symbol"] = symbol
 		params["type"] = "EXCHANGE"
 	case exchange.OrderTypeMarginLimit:
-		params["symbol"] = "t" + symbol
 		params["type"] = "MARGIN"
 	default:
 		return 0.0, errors.New("invalid order type")
