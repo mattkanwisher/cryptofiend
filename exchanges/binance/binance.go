@@ -20,6 +20,7 @@ const (
 	binanceBaseURL          = "https://www.binance.com/"
 	binanceExchangeInfoPath = "api/v1/exchangeInfo"
 	binanceAccountPath      = "api/v3/account"
+	binanceOpenOrders       = "api/v3/openOrders"
 )
 
 type rateLimitInfo struct {
@@ -41,18 +42,36 @@ func (b *Binance) CurrencyPairToSymbol(p pair.CurrencyPair) string {
 		String()
 }
 
-// Fetches current exchange trading rules and symbol information.
+// SymbolToCurrencyPair converts a symbol (exchange specific market identifier) to a currency pair.
+func (b *Binance) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error) {
+	if p, exists := b.currencyPairs[pair.CurrencyItem(symbol)]; exists {
+		return p.Currency.FormatPair(
+			b.RequestCurrencyPairFormat.Delimiter, b.RequestCurrencyPairFormat.Uppercase), nil
+	}
+	return pair.CurrencyPair{}, fmt.Errorf("no currency pair found for '%s' symbol", symbol)
+}
+
+// GetExchangeInfo fetches current exchange trading rules and symbol information.
 func (b *Binance) GetExchangeInfo() (*ExchangeInfo, error) {
 	response := ExchangeInfo{}
 	err := common.SendHTTPGetRequest(binanceBaseURL+binanceExchangeInfoPath, true, b.Verbose, &response)
 	return &response, err
 }
 
-// Fetches current account information.
+// GetAccountInfo fetches current account information.
 func (b *Binance) GetAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
 	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceAccountPath, nil, &response)
 	return &response, err
+}
+
+// GetOpenOrders fetches all currently open orders.
+func (b *Binance) GetOpenOrders() ([]Order, error) {
+	response := []Order{}
+	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
+	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOpenOrders, nil, &response)
+	return response, err
 }
 
 // SendAuthenticatedHTTPRequest sends a POST request to an authenticated endpoint, the response is

@@ -2,6 +2,8 @@ package binance
 
 import (
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/config"
@@ -155,7 +157,48 @@ func (b *Binance) GetOrder(orderID string) (*exchange.Order, error) {
 
 // GetOrders returns information about currently active orders.
 func (b *Binance) GetOrders() ([]*exchange.Order, error) {
-	panic("not implemented")
+	orders, err := b.GetOpenOrders()
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*exchange.Order, 0, len(orders))
+	for _, order := range orders {
+		ret = append(ret, b.convertOrderToExchangeOrder(&order))
+	}
+	return ret, nil
+}
+
+func (b *Binance) convertOrderToExchangeOrder(order *Order) *exchange.Order {
+	retOrder := &exchange.Order{}
+	retOrder.OrderID = strconv.FormatInt(order.OrderID, 10)
+
+	switch order.Status {
+	case OrderStatusCanceled, OrderStatusExpired, OrderStatusRejected, OrderStatusReplaced:
+		retOrder.Status = exchange.OrderStatusAborted
+	case OrderStatusFilled:
+		retOrder.Status = exchange.OrderStatusFilled
+	default:
+		if order.IsWorking {
+			retOrder.Status = exchange.OrderStatusActive
+		} else {
+			retOrder.Status = exchange.OrderStatusUnknown
+		}
+	}
+
+	retOrder.Amount = order.OrigQty
+	retOrder.FilledAmount = order.ExecutedQty
+	retOrder.RemainingAmount, _ = decimal.NewFromFloat(order.OrigQty).Sub(decimal.NewFromFloat(order.ExecutedQty)).Float64()
+	retOrder.Rate = order.Price
+	retOrder.CreatedAt = order.Time / 1000 // Binance specifies timestamps in milliseconds, convert it to seconds
+	retOrder.CurrencyPair, _ = b.SymbolToCurrencyPair(order.Symbol)
+	retOrder.Side = exchange.OrderSide(strings.ToLower(string(order.Side)))
+	if order.Type == OrderTypeLimit {
+		retOrder.Type = exchange.OrderTypeExchangeLimit
+	} else {
+		log.Printf("Binance.convertOrderToExchangeOrder(): unexpected '%s' order", order.Type)
+	}
+
+	return retOrder
 }
 
 // GetLimits returns price/amount limits for the exchange.

@@ -25,9 +25,60 @@ type AccountInfo struct {
 type OrderType string
 
 const (
-	OrderTypeMarket OrderType = "MARKET"
-	OrderTypeLimit  OrderType = "LIMIT"
+	OrderTypeMarket          OrderType = "MARKET"
+	OrderTypeLimit           OrderType = "LIMIT"
+	OrderTypeStopLoss        OrderType = "STOP_LOSS"
+	OrderTypeStopLossLimit   OrderType = "STOP_LOSS_LIMIT"
+	OrderTypeTakeProfit      OrderType = "TAKE_PROFIT"
+	OrderTypeTakeProfitLimit OrderType = "TAKE_PROFIT_LIMIT"
+	OrderTypeLimitMaker      OrderType = "LIMIT_MAKER"
 )
+
+type OrderStatus string
+
+const (
+	OrderStatusNew      OrderStatus = "NEW"
+	OrderStatusPartial  OrderStatus = "PARTIALLY_FILLED"
+	OrderStatusFilled   OrderStatus = "FILLED"
+	OrderStatusCanceled OrderStatus = "CANCELED"
+	OrderStatusPending  OrderStatus = "PENDING_CANCEL"
+	OrderStatusRejected OrderStatus = "REJECTED"
+	OrderStatusExpired  OrderStatus = "EXPIRED"
+	OrderStatusReplaced OrderStatus = "REPLACED"
+	OrderStatusTrade    OrderStatus = "TRADE"
+)
+
+type OrderSide string
+
+const (
+	OrderSideBuy  OrderSide = "BUY"
+	OrderSideSell OrderSide = "SELL"
+)
+
+type TimeInForce string
+
+const (
+	TimeInForceGTC TimeInForce = "GTC" // Good Till Cancel
+	TimeInForceIOC TimeInForce = "IOC" // Immediate or Cancel
+	TimeInForceFOK TimeInForce = "FOK" // Fill or Kill
+)
+
+type Order struct {
+	Symbol        string      `json:"symbol"`
+	OrderID       int64       `json:"orderId"`
+	ClientOrderID string      `json:"clientOrderId"`
+	Price         float64     `json:"price,string"`
+	OrigQty       float64     `json:"origQty,string"`
+	ExecutedQty   float64     `json:"executedQty,string"`
+	Status        OrderStatus `json:"status"`
+	TimeInForce   TimeInForce `json:"timeInForce"`
+	Type          OrderType   `json:"type"`
+	Side          OrderSide   `json:"side"`
+	StopPrice     float64     `json:"stopPrice,string"`
+	IcebergQty    float64     `json:"IcebergQty,string"`
+	Time          int64       `json:"time"`
+	IsWorking     bool        `json:"isWorking"`
+}
 
 type ExchangeInfo struct {
 	Symbols []SymbolInfo
