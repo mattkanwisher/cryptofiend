@@ -110,7 +110,30 @@ func (b *Binance) GetOrderbookEx(p pair.CurrencyPair, assetType string) (orderbo
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
 func (b *Binance) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderbook.Base, error) {
-	panic("not implemented")
+	book := orderbook.Base{}
+	symbol := b.CurrencyPairToSymbol(p)
+	marketData, err := b.FetchMarketData(symbol, 100)
+
+	if err != nil {
+		return book, err
+	}
+
+	for x := range marketData.Asks {
+		book.Asks = append(book.Asks, orderbook.Item{
+			Price:  marketData.Asks[x].Price,
+			Amount: marketData.Asks[x].Quantity,
+		})
+	}
+
+	for x := range marketData.Bids {
+		book.Bids = append(book.Bids, orderbook.Item{
+			Price:  marketData.Bids[x].Price,
+			Amount: marketData.Bids[x].Quantity,
+		})
+	}
+
+	b.Orderbooks.ProcessOrderbook(b.Name, p, book, assetType)
+	return b.Orderbooks.GetOrderbook(b.Name, p, assetType)
 }
 
 // GetExchangeAccountInfo retrieves balances for all enabled currencies on the

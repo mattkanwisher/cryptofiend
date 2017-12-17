@@ -24,6 +24,7 @@ const (
 	binanceOpenOrdersPath   = "api/v3/openOrders"
 	binanceOrderPath        = "api/v3/order"
 	binanceOrderTestPath    = "api/v3/order/test"
+	binanceDepthPath        = "api/v1/depth"
 )
 
 // BinanceErrCode enum represents a frequently encountered subset of the error codes documented at:
@@ -72,7 +73,7 @@ func (b *Binance) FetchExchangeInfo() (*ExchangeInfo, error) {
 // FetchAccountInfo fetches current account information.
 func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceAccountPath, nil, &response)
+	_, err := b.SendHTTPRequest(http.MethodGet, binanceAccountPath, nil, true, &response)
 	return &response, err
 }
 
@@ -81,7 +82,7 @@ func (b *Binance) FetchOpenOrders() ([]Order, error) {
 	response := []Order{}
 	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
 	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOpenOrdersPath, nil, &response)
+	_, err := b.SendHTTPRequest(http.MethodGet, binanceOpenOrdersPath, nil, true, &response)
 	return response, err
 }
 
@@ -124,7 +125,7 @@ func (b *Binance) PostOrderAck(params *PostOrderParams) (*PostOrderAckResponse, 
 	if params.ValidateOnly {
 		path = binanceOrderTestPath
 	}
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodPost, path, v, &response)
+	_, err := b.SendHTTPRequest(http.MethodPost, path, v, true, &response)
 	return &response, err
 }
 
@@ -139,7 +140,7 @@ func (b *Binance) FetchOrder(symbol string, orderID int64, clientOrderID string)
 		v.Set("origClientOrderId", clientOrderID)
 	}
 	response := Order{}
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOrderPath, v, &response)
+	_, err := b.SendHTTPRequest(http.MethodGet, binanceOrderPath, v, true, &response)
 	return &response, err
 }
 
@@ -154,14 +155,29 @@ func (b *Binance) DeleteOrder(symbol string, orderID int64, clientOrderID string
 		v.Set("origClientOrderId", clientOrderID)
 	}
 	response := DeleteOrderResponse{}
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodDelete, binanceOrderPath, v, &response)
+	_, err := b.SendHTTPRequest(http.MethodDelete, binanceOrderPath, v, true, &response)
 	return err
+}
+
+// FetchMarketData fetches the orderbooks for the given symbol.
+// The limit parameter can be -1, 0, 5, 10, 20, 50, 100, 200, 1000.
+// Set the limit to -1 to use the default value (currently 100), or to 0 to disable the limit
+// (this can return a lot of data, so should avoided).
+func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, error) {
+	v := url.Values{}
+	v.Set("symbol", symbol)
+	if limit > -1 {
+		v.Set("limit", strconv.FormatInt(limit, 10))
+	}
+	response := MarketData{}
+	_, err := b.SendHTTPRequest(http.MethodGet, binanceDepthPath, v, false, &response)
+	return &response, err
 }
 
 // SendAuthenticatedHTTPRequest sends a POST request to an authenticated endpoint, the response is
 // decoded into the result object.
 // Returns the Binance error code and error message (if any).
-func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.Values,
+func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign bool,
 	result interface{}) (int, error) {
 	if !b.AuthenticatedAPISupport {
 		return 0, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, b.Name)
@@ -171,18 +187,27 @@ func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.V
 		log.Printf("Request params: %v\n", params)
 	}
 
-	recvWindow := 5000
-	timestamp := time.Now().UnixNano() / (1000 * 1000) // must be in milliseconds
-	payload := fmt.Sprintf("timestamp=%v&recvWindow=%d", timestamp, recvWindow)
-	if params != nil {
-		payload = fmt.Sprintf("%s&%s", params.Encode(), payload)
-	}
-	hmac := common.GetHMAC(common.HashSHA256, []byte(payload), []byte(b.APISecret))
 	headers := make(http.Header)
-	headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
 	headers["Accept"] = []string{"application/json"}
-	headers["X-MBX-APIKEY"] = []string{b.APIKey}
-	payload = fmt.Sprintf("%s&signature=%s", payload, hex.EncodeToString(hmac))
+
+	var payload string
+	if len(params) > 0 {
+		payload = params.Encode()
+	}
+
+	if sign {
+		recvWindow := 5000
+		timestamp := time.Now().UnixNano() / (1000 * 1000) // must be in milliseconds
+		timeWindow := fmt.Sprintf("timestamp=%v&recvWindow=%d", timestamp, recvWindow)
+		if payload != "" {
+			payload += "&" + timeWindow
+		} else {
+			payload = timeWindow
+		}
+		hmac := common.GetHMAC(common.HashSHA256, []byte(payload), []byte(b.APISecret))
+		payload = fmt.Sprintf("%s&signature=%s", payload, hex.EncodeToString(hmac))
+		headers["X-MBX-APIKEY"] = []string{b.APIKey}
+	}
 
 	var resp string
 	var statusCode int
@@ -191,6 +216,7 @@ func (b *Binance) SendAuthenticatedHTTPRequest(method, path string, params url.V
 		resp, statusCode, err = common.SendHTTPRequest2(
 			method, fmt.Sprintf("%s%s?%s", binanceBaseURL, path, payload), headers, nil)
 	} else {
+		headers["Content-Type"] = []string{"application/x-www-form-urlencoded"}
 		resp, statusCode, err = common.SendHTTPRequest2(method,
 			binanceBaseURL+path, headers, strings.NewReader(payload))
 	}
@@ -255,6 +281,6 @@ func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string,
 		return nil
 	}
 
-	_, err := b.SendAuthenticatedHTTPRequest(method, path, params, result)
+	_, err := b.SendHTTPRequest(method, path, params, true, result)
 	return err
 }

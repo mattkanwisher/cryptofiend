@@ -1,5 +1,10 @@
 package binance
 
+import (
+	"encoding/json"
+	"strconv"
+)
+
 type ErrorInfo struct {
 	Code    int32  `json:"code"`
 	Message string `json:"msg"`
@@ -137,4 +142,37 @@ type DeleteOrderResponse struct {
 	OrigClientOrderID string `json:"origClientOrderId"`
 	OrderID           int64  `json:"orderId"`
 	ClientOrderID     string `json:"clientOrderId"`
+}
+
+type OrderbookEntry struct {
+	Price    float64 `json:",string"`
+	Quantity float64 `json:",string"`
+}
+
+// UnmarshalJSON does some custom unmarshalling of orderbook entries.
+func (entry *OrderbookEntry) UnmarshalJSON(b []byte) error {
+	var s [2]string
+
+	err := json.Unmarshal(b, &s)
+	if err != nil {
+		return err
+	}
+
+	entry.Price, err = strconv.ParseFloat(s[0], 64)
+	if err != nil {
+		return err
+	}
+
+	entry.Quantity, err = strconv.ParseFloat(s[1], 64)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type MarketData struct {
+	LastUpdateID int64            `json:"lastUpdateId"`
+	Bids         []OrderbookEntry `json:"bids"`
+	Asks         []OrderbookEntry `json:"asks"`
 }
