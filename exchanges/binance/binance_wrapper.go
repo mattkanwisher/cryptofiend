@@ -75,14 +75,27 @@ func (b *Binance) Run() {
 
 	exchangeProducts := make([]string, len(exchangeInfo.Symbols))
 	b.currencyPairs = make(map[pair.CurrencyItem]*exchange.CurrencyPairInfo, len(exchangeInfo.Symbols))
-	//b.symbolDetails = make(map[pair.CurrencyItem]*SymbolDetails, len(symbolsDetails))
+	b.symbolDetailsMap = make(map[pair.CurrencyItem]*symbolDetails, len(exchangeInfo.Symbols))
 	for i := range exchangeInfo.Symbols {
 		symbolInfo := &exchangeInfo.Symbols[i]
 		exchangeProducts[i] = symbolInfo.Symbol
 		currencyPair := pair.NewCurrencyPair(symbolInfo.BaseAsset, symbolInfo.QuoteAsset)
 		b.currencyPairs[pair.CurrencyItem(symbolInfo.Symbol)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
-		//b.symbolDetails[currencyPair.Display("/", false)] = symbolInfo
+		sd := symbolDetails{}
+		for _, filter := range symbolInfo.Filters {
+			switch filter.Type {
+			case FilterTypePrice:
+				sd.PriceDecimalPlaces = filter.TickSize.Exponent() * -1
+			case FilterTypeLotSize:
+				sd.AmountDecimalPlaces = filter.StepSize.Exponent() * -1
+				sd.MinAmount, _ = filter.MinQty.Float64()
+			default:
+				// ignore
+			}
+		}
+		b.symbolDetailsMap[currencyPair.Display("/", false)] = &sd
 	}
+
 	err = b.UpdateAvailableCurrencies(exchangeProducts, false)
 	if err != nil {
 		log.Printf("%s failed to update available currencies\n", b.Name)
@@ -258,11 +271,56 @@ func (b *Binance) convertOrderToExchangeOrder(order *Order) *exchange.Order {
 
 // GetLimits returns price/amount limits for the exchange.
 func (b *Binance) GetLimits() exchange.ILimits {
-	panic("not implemented")
+	return newCurrencyLimits(b.Name, b.symbolDetailsMap)
 }
 
 // GetCurrencyPairs returns currency pairs that can be used by the exchange account
 // associated with this bot. Use FormatExchangeCurrency to get the right key.
 func (b *Binance) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
 	return b.currencyPairs
+}
+
+type symbolDetails struct {
+	PriceDecimalPlaces  int32
+	AmountDecimalPlaces int32
+	MinAmount           float64
+}
+
+type currencyLimits struct {
+	exchangeName string
+	// Maps symbol (lower-case) to symbol details
+	data map[pair.CurrencyItem]*symbolDetails
+}
+
+func newCurrencyLimits(exchangeName string, data map[pair.CurrencyItem]*symbolDetails) *currencyLimits {
+	return &currencyLimits{exchangeName, data}
+}
+
+// Returns max number of decimal places allowed in the trade price for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetPriceDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return v.PriceDecimalPlaces
+	}
+	return 0
+}
+
+// Returns max number of decimal places allowed in the trade amount for the given currency pair,
+// -1 should be used to indicate this value isn't defined.
+func (cl *currencyLimits) GetAmountDecimalPlaces(p pair.CurrencyPair) int32 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return v.AmountDecimalPlaces
+	}
+	return 0
+}
+
+// Returns the minimum trade amount for the given currency pair.
+func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return v.MinAmount
+	}
+	return 0
 }

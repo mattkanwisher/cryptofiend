@@ -44,7 +44,8 @@ type Binance struct {
 	exchange.Base
 	rateLimits map[string]*rateLimitInfo
 	// Maps symbol (exchange specific market identifier) to currency pair info
-	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
+	currencyPairs    map[pair.CurrencyItem]*exchange.CurrencyPairInfo
+	symbolDetailsMap map[pair.CurrencyItem]*symbolDetails
 }
 
 // CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).

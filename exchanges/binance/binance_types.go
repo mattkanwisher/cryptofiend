@@ -3,6 +3,8 @@ package binance
 import (
 	"encoding/json"
 	"strconv"
+
+	"github.com/shopspring/decimal"
 )
 
 type ErrorInfo struct {
@@ -105,17 +107,17 @@ type SymbolInfoFilter struct {
 	Type FilterType `json:"filterType"`
 
 	// PRICE_FILTER parameters
-	MinPrice string `json:"minPrice"`
-	MaxPrice string `json:"maxPrice"`
-	TickSize string `json:"tickSize"`
+	MinPrice decimal.Decimal `json:"minPrice,string"`
+	MaxPrice decimal.Decimal `json:"maxPrice,string"`
+	TickSize decimal.Decimal `json:"tickSize,string"`
 
 	// LOT_SIZE parameters
-	MinQty   string `json:"minQty"`
-	MaxQty   string `json:"maxQty"`
-	StepSize string `json:"stepSize"`
+	MinQty   decimal.Decimal `json:"minQty,string"`
+	MaxQty   decimal.Decimal `json:"maxQty,string"`
+	StepSize decimal.Decimal `json:"stepSize,string"`
 
 	// MIN_NOTIONAL parameters
-	MinNotional string `json:"minNotional"`
+	MinNotional decimal.Decimal `json:"minNotional,string"`
 }
 
 type SymbolInfo struct {
