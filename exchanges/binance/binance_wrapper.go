@@ -168,8 +168,16 @@ func (b *Binance) CancelOrder(OrderID string) error {
 }
 
 // GetOrder returns information about a previously placed order (which may be active or inactive).
-func (b *Binance) GetOrder(orderID string) (*exchange.Order, error) {
-	panic("not implemented")
+func (b *Binance) GetOrder(orderID string, symbol string) (*exchange.Order, error) {
+	id, err := strconv.ParseInt(orderID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	order, err := b.FetchOrder(symbol, id, "")
+	if err != nil {
+		return nil, err
+	}
+	return b.convertOrderToExchangeOrder(order), nil
 }
 
 // GetOrders returns information about currently active orders.

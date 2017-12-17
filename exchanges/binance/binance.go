@@ -21,9 +21,17 @@ const (
 	binanceBaseURL          = "https://www.binance.com/"
 	binanceExchangeInfoPath = "api/v1/exchangeInfo"
 	binanceAccountPath      = "api/v3/account"
-	binanceOpenOrders       = "api/v3/openOrders"
-	binancePostOrder        = "api/v3/order"
-	binancePostOrderTest    = "api/v3/order/test"
+	binanceOpenOrdersPath   = "api/v3/openOrders"
+	binanceOrderPath        = "api/v3/order"
+	binanceOrderTestPath    = "api/v3/order/test"
+)
+
+// BinanceErrCode enum represents a frequently encountered subset of the error codes documented at:
+// https://github.com/binance-exchange/binance-official-api-docs/blob/master/errors.md
+type BinanceErrCode int32
+
+const (
+	InvalidTimestampErrCode BinanceErrCode = -1021 // fix: sync your computer clock to internet time
 )
 
 type rateLimitInfo struct {
@@ -73,7 +81,7 @@ func (b *Binance) GetOpenOrders() ([]Order, error) {
 	response := []Order{}
 	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
 	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
-	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOpenOrders, nil, &response)
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOpenOrdersPath, nil, &response)
 	return response, err
 }
 
@@ -112,11 +120,26 @@ func (b *Binance) PostOrderAck(params *PostOrderParams) (*PostOrderAckResponse, 
 	v.Set("newOrderRespType", "ACK")
 
 	response := PostOrderAckResponse{}
-	path := binancePostOrder
+	path := binanceOrderPath
 	if params.ValidateOnly {
-		path = binancePostOrderTest
+		path = binanceOrderTestPath
 	}
 	_, err := b.SendAuthenticatedHTTPRequest(http.MethodPost, path, v, &response)
+	return &response, err
+}
+
+// FetchOrder fetches an order from the exchange, either orderID or clientOrderID must be provided.
+func (b *Binance) FetchOrder(symbol string, orderID int64, clientOrderID string) (*Order, error) {
+	v := url.Values{}
+	v.Set("symbol", symbol)
+	if orderID != 0 {
+		v.Set("orderId", strconv.FormatInt(orderID, 10))
+	}
+	if clientOrderID != "" {
+		v.Set("origClientOrderId", clientOrderID)
+	}
+	response := Order{}
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceOrderPath, v, &response)
 	return &response, err
 }
 
