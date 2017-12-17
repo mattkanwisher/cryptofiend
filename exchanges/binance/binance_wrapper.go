@@ -233,8 +233,8 @@ func (b *Binance) GetLimits() exchange.ILimits {
 	panic("not implemented")
 }
 
-// Returns currency pairs that can be used by the exchange account associated with this bot.
-// Use FormatExchangeCurrency to get the right key.
+// GetCurrencyPairs returns currency pairs that can be used by the exchange account
+// associated with this bot. Use FormatExchangeCurrency to get the right key.
 func (b *Binance) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPairInfo {
 	return b.currencyPairs
 }
