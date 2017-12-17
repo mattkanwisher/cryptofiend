@@ -67,7 +67,7 @@ func (b *Binance) Run() {
 		log.Printf("%s %d currencies enabled: %s.\n", b.GetName(), len(b.EnabledPairs), b.EnabledPairs)
 	}
 
-	exchangeInfo, err := b.GetExchangeInfo()
+	exchangeInfo, err := b.FetchExchangeInfo()
 	if err != nil {
 		log.Printf("%s failed to get exchange info\n", b.GetName())
 		return
@@ -123,7 +123,7 @@ func (b *Binance) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		return result, nil
 	}
 
-	accountInfo, err := b.GetAccountInfo()
+	accountInfo, err := b.FetchAccountInfo()
 	if err != nil {
 		return result, err
 	}
@@ -188,7 +188,7 @@ func (b *Binance) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exc
 
 // GetOrders returns information about currently active orders.
 func (b *Binance) GetOrders() ([]*exchange.Order, error) {
-	orders, err := b.GetOpenOrders()
+	orders, err := b.FetchOpenOrders()
 	if err != nil {
 		return nil, err
 	}

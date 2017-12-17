@@ -62,22 +62,22 @@ func (b *Binance) SymbolToCurrencyPair(symbol string) (pair.CurrencyPair, error)
 	return pair.CurrencyPair{}, fmt.Errorf("no currency pair found for '%s' symbol", symbol)
 }
 
-// GetExchangeInfo fetches current exchange trading rules and symbol information.
-func (b *Binance) GetExchangeInfo() (*ExchangeInfo, error) {
+// FetchExchangeInfo fetches current exchange trading rules and symbol information.
+func (b *Binance) FetchExchangeInfo() (*ExchangeInfo, error) {
 	response := ExchangeInfo{}
 	err := common.SendHTTPGetRequest(binanceBaseURL+binanceExchangeInfoPath, true, b.Verbose, &response)
 	return &response, err
 }
 
-// GetAccountInfo fetches current account information.
-func (b *Binance) GetAccountInfo() (*AccountInfo, error) {
+// FetchAccountInfo fetches current account information.
+func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
 	_, err := b.SendAuthenticatedHTTPRequest(http.MethodGet, binanceAccountPath, nil, &response)
 	return &response, err
 }
 
-// GetOpenOrders fetches all currently open orders.
-func (b *Binance) GetOpenOrders() ([]Order, error) {
+// FetchOpenOrders fetches all currently open orders.
+func (b *Binance) FetchOpenOrders() ([]Order, error) {
 	response := []Order{}
 	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
 	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
