@@ -201,7 +201,7 @@ func (k *Kraken) GetCurrencyPairs() map[pair.CurrencyItem]*exchange.CurrencyPair
 }
 
 // GetOrder returns information about the exchange order matching the given ID
-func (k *Kraken) GetOrder(orderID string) (*exchange.Order, error) {
+func (k *Kraken) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	panic("not implemented")
 }
 

@@ -130,7 +130,8 @@ type IBotExchangeEx interface {
 	// CancelOrder will attempt to cancel the active order matching the given ID.
 	CancelOrder(OrderID string) error
 	// GetOrder returns information about a previously placed order (which may be active or inactive).
-	GetOrder(orderID string) (*Order, error)
+	// The currency pair may be required for some exchanges.
+	GetOrder(orderID string, currencyPair pair.CurrencyPair) (*Order, error)
 	// GetOrders returns information about currently active orders.
 	GetOrders() ([]*Order, error)
 	// GetLimits returns price/amount limits for the exchange.

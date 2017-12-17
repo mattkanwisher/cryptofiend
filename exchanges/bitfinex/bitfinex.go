@@ -554,7 +554,7 @@ func (b *Bitfinex) GetOrderStatus(OrderID int64) (Order, error) {
 }
 
 // GetOrder returns information about the exchange order matching the given ID
-func (b *Bitfinex) GetOrder(orderID string) (*exchange.Order, error) {
+func (b *Bitfinex) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	id, err := strconv.ParseInt(orderID, 10, 64)
 	if err != nil {
 		return nil, err

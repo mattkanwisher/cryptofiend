@@ -411,7 +411,7 @@ func (g *Gemini) GetOrderStatus(orderID int64) (*Order, error) {
 // account. Unlike GetOrders() this method can retrieve information about exchange orders
 // that were cancelled.
 // OrderID is the exchange generated order ID.
-func (g *Gemini) GetOrder(orderID string) (*exchange.Order, error) {
+func (g *Gemini) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	orderIDInt, err := strconv.ParseInt(orderID, 10, 64)
 	if err != nil {
 		return nil, err

@@ -298,7 +298,7 @@ func (b *Bittrex) CancelOrder(uuid string) error {
 	return err
 }
 
-func (b *Bittrex) GetOrder(orderID string) (*exchange.Order, error) {
+func (b *Bittrex) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	order, err := b.getOrder(orderID)
 	if err != nil {
 		return nil, err

@@ -480,7 +480,7 @@ func (p *Poloniex) PlaceOrder(currency string, rate, amount float64, immediate, 
 	return result, nil
 }
 
-func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
+func (p *Poloniex) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	response, err := p.GetOrderTrades(orderID)
 	if err != nil {
 		if strings.HasPrefix(strings.ToLower(err.Error()), "order not found") {
@@ -491,14 +491,14 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 
 	ll := log.WithField("exchange", p.Name).WithField("orderID", orderID)
 
-	var currencyPair pair.CurrencyPair
+	var currency pair.CurrencyPair
 	var side exchange.OrderSide
 	rateSum := decimal.Zero
 	filledAmount := decimal.Zero
 	var lastTradeTimeStamp int64
 	for i, trade := range response.Data {
 		if i == 0 {
-			currencyPair = p.SymbolToCurrencyPair(trade.CurrencyPair)
+			currency = p.SymbolToCurrencyPair(trade.CurrencyPair)
 			side = exchange.OrderSide(trade.Type)
 			tradeTime, err := time.Parse(POLONIEX_TIME_FORMAT, trade.Date)
 			if err != nil {
@@ -521,7 +521,7 @@ func (p *Poloniex) GetOrder(orderID string) (*exchange.Order, error) {
 	}
 	orderFilledAmount, _ := filledAmount.Float64()
 	order := &exchange.Order{
-		CurrencyPair: currencyPair,
+		CurrencyPair: currency,
 		Side:         side,
 		// There's no way to figure out what the original amount was from the order trades alone.
 		Amount:       0,

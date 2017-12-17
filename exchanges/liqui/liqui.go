@@ -264,7 +264,7 @@ func (l *Liqui) GetOrderInfo(orderID string) (map[string]*OrderInfo, error) {
 	return result, l.SendAuthenticatedHTTPRequest(liquiOrderInfo, req, &result)
 }
 
-func (l *Liqui) GetOrder(orderID string) (*exchange.Order, error) {
+func (l *Liqui) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exchange.Order, error) {
 	orderinfo, err := l.GetOrderInfo(orderID)
 	if err != nil {
 		return nil, err
