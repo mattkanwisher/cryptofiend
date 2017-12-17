@@ -198,21 +198,22 @@ func (b *Binance) convertOrderToExchangeOrder(order *Order) *exchange.Order {
 	retOrder.OrderID = strconv.FormatInt(order.OrderID, 10)
 
 	switch order.Status {
-	case OrderStatusCanceled, OrderStatusExpired, OrderStatusRejected, OrderStatusReplaced:
+	case OrderStatusCanceled, OrderStatusPendingCancel, OrderStatusExpired, OrderStatusRejected:
 		retOrder.Status = exchange.OrderStatusAborted
 	case OrderStatusFilled:
 		retOrder.Status = exchange.OrderStatusFilled
+	case OrderStatusNew, OrderStatusPartial:
+		retOrder.Status = exchange.OrderStatusActive
 	default:
-		if order.IsWorking {
-			retOrder.Status = exchange.OrderStatusActive
-		} else {
-			retOrder.Status = exchange.OrderStatusUnknown
-		}
+		retOrder.Status = exchange.OrderStatusUnknown
 	}
 
 	retOrder.Amount = order.OrigQty
 	retOrder.FilledAmount = order.ExecutedQty
 	retOrder.RemainingAmount, _ = decimal.NewFromFloat(order.OrigQty).Sub(decimal.NewFromFloat(order.ExecutedQty)).Float64()
+	if retOrder.RemainingAmount == 0.0 {
+		retOrder.Status = exchange.OrderStatusFilled
+	}
 	retOrder.Rate = order.Price
 	retOrder.CreatedAt = order.Time / 1000 // Binance specifies timestamps in milliseconds, convert it to seconds
 	retOrder.CurrencyPair, _ = b.SymbolToCurrencyPair(order.Symbol)

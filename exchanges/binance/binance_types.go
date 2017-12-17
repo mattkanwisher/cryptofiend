@@ -37,15 +37,13 @@ const (
 type OrderStatus string
 
 const (
-	OrderStatusNew      OrderStatus = "NEW"
-	OrderStatusPartial  OrderStatus = "PARTIALLY_FILLED"
-	OrderStatusFilled   OrderStatus = "FILLED"
-	OrderStatusCanceled OrderStatus = "CANCELED"
-	OrderStatusPending  OrderStatus = "PENDING_CANCEL"
-	OrderStatusRejected OrderStatus = "REJECTED"
-	OrderStatusExpired  OrderStatus = "EXPIRED"
-	OrderStatusReplaced OrderStatus = "REPLACED"
-	OrderStatusTrade    OrderStatus = "TRADE"
+	OrderStatusNew           OrderStatus = "NEW"
+	OrderStatusPartial       OrderStatus = "PARTIALLY_FILLED"
+	OrderStatusFilled        OrderStatus = "FILLED"
+	OrderStatusCanceled      OrderStatus = "CANCELED"
+	OrderStatusPendingCancel OrderStatus = "PENDING_CANCEL" // currently unused
+	OrderStatusRejected      OrderStatus = "REJECTED"
+	OrderStatusExpired       OrderStatus = "EXPIRED"
 )
 
 type OrderSide string
