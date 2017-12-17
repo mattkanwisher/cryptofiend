@@ -27,7 +27,7 @@ func (b *Binance) SetDefaults() {
 	b.ConfigCurrencyPairFormat.Uppercase = true
 	b.AssetTypes = []string{ticker.Spot}
 	b.Orderbooks = orderbook.Init()
-	b.rateLimits = map[string]*rateLimitInfo{}
+	b.rateLimits = map[string]int64{}
 }
 
 // Setup takes in the supplied exchange configuration details and sets params

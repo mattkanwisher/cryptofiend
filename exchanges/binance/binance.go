@@ -32,20 +32,23 @@ const (
 type BinanceErrCode int32
 
 const (
+	TooManyRequestsErrCode  BinanceErrCode = -1003
 	InvalidTimestampErrCode BinanceErrCode = -1021 // fix: sync your computer clock to internet time
 )
 
-type rateLimitInfo struct {
-	StartTime    int64
-	RequestCount uint
-}
-
 type Binance struct {
 	exchange.Base
-	rateLimits map[string]*rateLimitInfo
+	// Maps HTTP method & path to a timestamp (in msecs) of the last time a request was sent
+	rateLimits map[string]int64
+	// Timestamp (in msecs) of the last time the Binance server rate limited a request
+	ipBanStartTime int64
 	// Maps symbol (exchange specific market identifier) to currency pair info
 	currencyPairs    map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 	symbolDetailsMap map[pair.CurrencyItem]*symbolDetails
+	// Cached data that's returned when HTTP requests are rate-limited
+	lastAccountInfo AccountInfo
+	lastOpenOrders  []Order
+	lastMarketData  MarketData
 }
 
 // CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
@@ -74,7 +77,12 @@ func (b *Binance) FetchExchangeInfo() (*ExchangeInfo, error) {
 // FetchAccountInfo fetches current account information.
 func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
-	_, err := b.SendHTTPRequest(http.MethodGet, binanceAccountPath, nil, true, &response)
+	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceAccountPath, nil, true,
+		&response, b.lastAccountInfo)
+	if err != nil {
+		return &response, err
+	}
+	b.lastAccountInfo = response
 	return &response, err
 }
 
@@ -82,8 +90,12 @@ func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 func (b *Binance) FetchOpenOrders() ([]Order, error) {
 	response := []Order{}
 	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
-	// to query only a few symbols rather than all of them (from a rate limiting standpoint).
-	_, err := b.SendHTTPRequest(http.MethodGet, binanceOpenOrdersPath, nil, true, &response)
+	// to query only a few symbols rather than all of them from a rate limiting standpoint.
+	// At 20 reqs/min you'll get IP banned in less than a minute... dropping down to 10 to see
+	// if that's better... but probably really do have to be selective with the symbols.
+	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, nil, true,
+		&response, b.lastOpenOrders)
+	b.lastOpenOrders = response
 	return response, err
 }
 
@@ -171,7 +183,9 @@ func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, erro
 		v.Set("limit", strconv.FormatInt(limit, 10))
 	}
 	response := MarketData{}
-	_, err := b.SendHTTPRequest(http.MethodGet, binanceDepthPath, v, false, &response)
+	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceDepthPath, v, false,
+		&response, b.lastMarketData)
+	b.lastMarketData = response
 	return &response, err
 }
 
@@ -252,21 +266,33 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign b
 // result parameter. If the number of requests per minute has been exceeded this method will
 // set the result to the default value (which can be a pointer, but must not be nil).
 func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string, path string,
-	params url.Values, result interface{}, defaultValue interface{}) error {
-	rateLimit := b.rateLimits[method+path]
-	if rateLimit == nil {
-		rateLimit = &rateLimitInfo{}
-		b.rateLimits[method+path] = rateLimit
+	params url.Values, sign bool, result interface{}, defaultValue interface{}) error {
+	curTimestamp := time.Now().UnixNano() / (1000 * 1000) // convert to milliseconds
+	requestDelay := int64((60 * 1000) / requestsPerMin)   // min delay between requests in msecs
+	lastRequestTime := b.rateLimits[method+path]
+	// If we got IP banned wait 5 mins before trying again, otherwise we might get banned for longer.
+	skipRequest := (b.ipBanStartTime != 0) && ((curTimestamp - b.ipBanStartTime) < (5 * 60 * 1000))
+	// Make sure requests are spaced out to avoid getting IP banned in the first place.
+	if !skipRequest {
+		skipRequest = (curTimestamp - lastRequestTime) < requestDelay
 	}
 
-	curTimeStamp := time.Now().Unix()
-	if (rateLimit.StartTime == 0) || ((curTimeStamp - rateLimit.StartTime) > 90) {
-		rateLimit.RequestCount = 0
-		rateLimit.StartTime = curTimeStamp
+	if !skipRequest {
+		code, err := b.SendHTTPRequest(method, path, params, sign, result)
+		if err != nil {
+			if BinanceErrCode(code) == TooManyRequestsErrCode {
+				b.ipBanStartTime = curTimestamp
+				skipRequest = true
+			} else {
+				return err
+			}
+		} else {
+			b.ipBanStartTime = 0
+			b.rateLimits[method+path] = curTimestamp
+		}
 	}
-	if rateLimit.RequestCount < requestsPerMin {
-		rateLimit.RequestCount++
-	} else {
+
+	if skipRequest {
 		// set result to default value
 		rv := reflect.ValueOf(result)
 		if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -281,9 +307,7 @@ func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string,
 		} else {
 			reflect.Indirect(rv).Set(dv)
 		}
-		return nil
 	}
 
-	_, err := b.SendHTTPRequest(method, path, params, true, result)
-	return err
+	return nil
 }
