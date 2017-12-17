@@ -197,7 +197,9 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign b
 
 	if sign {
 		recvWindow := 5000
-		timestamp := time.Now().UnixNano() / (1000 * 1000) // must be in milliseconds
+		// HACK: Subtract 1 sec from the real timestamp to get around incessant timestamp errors
+		// from Binance.
+		timestamp := time.Now().UnixNano()/(1000*1000) - 1000 // must be in milliseconds
 		timeWindow := fmt.Sprintf("timestamp=%v&recvWindow=%d", timestamp, recvWindow)
 		if payload != "" {
 			payload += "&" + timeWindow
