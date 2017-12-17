@@ -332,7 +332,7 @@ func (l *Liqui) GetOrders() ([]*exchange.Order, error) {
 }
 
 // CancelOrder method is used for order cancelation.
-func (l *Liqui) CancelOrder(OrderID string) error {
+func (l *Liqui) CancelOrder(OrderID string, currencyPair pair.CurrencyPair) error {
 	req := url.Values{}
 	req.Add("order_id", OrderID)
 

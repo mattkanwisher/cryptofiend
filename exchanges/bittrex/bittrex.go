@@ -293,7 +293,7 @@ func (b *Bittrex) GetOpenOrders(currencyPair string) ([]Order, error) {
 	return orders, b.HTTPRequest(path, true, values, &orders)
 }
 
-func (b *Bittrex) CancelOrder(uuid string) error {
+func (b *Bittrex) CancelOrder(uuid string, currencyPair pair.CurrencyPair) error {
 	_, err := b.cancelOrder(uuid)
 	return err
 }

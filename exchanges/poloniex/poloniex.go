@@ -617,7 +617,7 @@ func (p *Poloniex) NewOrder(
 	return orderID, nil
 }
 
-func (p *Poloniex) CancelOrder(orderstr string) error {
+func (p *Poloniex) CancelOrder(orderstr string, currencyPair pair.CurrencyPair) error {
 	var err error
 	var orderID int64
 	if orderID, err = strconv.ParseInt(orderstr, 10, 64); err != nil {

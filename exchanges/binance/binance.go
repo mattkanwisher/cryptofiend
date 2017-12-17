@@ -143,6 +143,21 @@ func (b *Binance) FetchOrder(symbol string, orderID int64, clientOrderID string)
 	return &response, err
 }
 
+// DeleteOrder cancels an active order on the exchange, either orderID or clientOrderID must be provided.
+func (b *Binance) DeleteOrder(symbol string, orderID int64, clientOrderID string) error {
+	v := url.Values{}
+	v.Set("symbol", symbol)
+	if orderID != 0 {
+		v.Set("orderId", strconv.FormatInt(orderID, 10))
+	}
+	if clientOrderID != "" {
+		v.Set("origClientOrderId", clientOrderID)
+	}
+	response := DeleteOrderResponse{}
+	_, err := b.SendAuthenticatedHTTPRequest(http.MethodDelete, binanceOrderPath, v, &response)
+	return err
+}
+
 // SendAuthenticatedHTTPRequest sends a POST request to an authenticated endpoint, the response is
 // decoded into the result object.
 // Returns the Binance error code and error message (if any).

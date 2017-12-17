@@ -131,3 +131,10 @@ type PostOrderAckResponse struct {
 	ClientOrderID string `json:"clientOrderId"`
 	TransactTime  int64  `json:"transactTime"`
 }
+
+type DeleteOrderResponse struct {
+	Symbol            string `json:"symbol"`
+	OrigClientOrderID string `json:"origClientOrderId"`
+	OrderID           int64  `json:"orderId"`
+	ClientOrderID     string `json:"clientOrderId"`
+}

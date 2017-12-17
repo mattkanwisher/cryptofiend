@@ -163,8 +163,13 @@ func (b *Binance) NewOrder(p pair.CurrencyPair, amount, price float64, side exch
 }
 
 // CancelOrder will attempt to cancel the active order matching the given ID.
-func (b *Binance) CancelOrder(OrderID string) error {
-	panic("not implemented")
+func (b *Binance) CancelOrder(orderID string, currencyPair pair.CurrencyPair) error {
+	id, err := strconv.ParseInt(orderID, 10, 64)
+	if err != nil {
+		return err
+	}
+	symbol := b.CurrencyPairToSymbol(currencyPair)
+	return b.DeleteOrder(symbol, id, "")
 }
 
 // GetOrder returns information about a previously placed order (which may be active or inactive).

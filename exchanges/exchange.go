@@ -128,7 +128,8 @@ type IBotExchangeEx interface {
 	// immediately but no ID was generated.
 	NewOrder(symbol pair.CurrencyPair, amount, price float64, side OrderSide, orderType OrderType) (string, error)
 	// CancelOrder will attempt to cancel the active order matching the given ID.
-	CancelOrder(OrderID string) error
+	// The currency pair may be required for some exchanges.
+	CancelOrder(OrderID string, currencyPair pair.CurrencyPair) error
 	// GetOrder returns information about a previously placed order (which may be active or inactive).
 	// The currency pair may be required for some exchanges.
 	GetOrder(orderID string, currencyPair pair.CurrencyPair) (*Order, error)

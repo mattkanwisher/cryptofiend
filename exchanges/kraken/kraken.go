@@ -763,7 +763,7 @@ func (k *Kraken) AddOrder(params AddOrderParams) (*AddOrderResult, error) {
 	return &result, nil
 }
 
-func (k *Kraken) CancelOrder(orderStr string) error {
+func (k *Kraken) CancelOrder(orderStr string, currencyPair pair.CurrencyPair) error {
 	var orderID int64
 	var err error
 	if orderID, err = strconv.ParseInt(orderStr, 10, 64); err != nil {
