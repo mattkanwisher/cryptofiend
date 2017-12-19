@@ -48,7 +48,7 @@ type Binance struct {
 	// Cached data that's returned when HTTP requests are rate-limited
 	lastAccountInfo AccountInfo
 	lastOpenOrders  []Order
-	lastMarketData  MarketData
+	lastMarketData  map[string]*MarketData
 }
 
 // CurrencyPairToSymbol converts a currency pair to a symbol (exchange specific market identifier).
@@ -182,10 +182,15 @@ func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, erro
 	if limit > -1 {
 		v.Set("limit", strconv.FormatInt(limit, 10))
 	}
+
+	lastMarketData := b.lastMarketData[symbol]
+	if lastMarketData == nil {
+		lastMarketData = &MarketData{}
+	}
 	response := MarketData{}
 	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceDepthPath, v, false,
-		&response, b.lastMarketData)
-	b.lastMarketData = response
+		&response, lastMarketData)
+	b.lastMarketData[symbol] = &response
 	return &response, err
 }
 
