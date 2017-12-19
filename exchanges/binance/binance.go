@@ -77,8 +77,8 @@ func (b *Binance) FetchExchangeInfo() (*ExchangeInfo, error) {
 // FetchAccountInfo fetches current account information.
 func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
-	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceAccountPath, nil, true,
-		&response, b.lastAccountInfo)
+	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceAccountPath, nil,
+		RequestSecuritySign, &response, b.lastAccountInfo)
 	if err != nil {
 		return &response, err
 	}
@@ -93,8 +93,8 @@ func (b *Binance) FetchOpenOrders() ([]Order, error) {
 	// to query only a few symbols rather than all of them from a rate limiting standpoint.
 	// At 20 reqs/min you'll get IP banned in less than a minute... dropping down to 10 to see
 	// if that's better... but probably really do have to be selective with the symbols.
-	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, nil, true,
-		&response, b.lastOpenOrders)
+	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, nil,
+		RequestSecuritySign, &response, b.lastOpenOrders)
 	b.lastOpenOrders = response
 	return response, err
 }
@@ -138,7 +138,7 @@ func (b *Binance) PostOrderAck(params *PostOrderParams) (*PostOrderAckResponse, 
 	if params.ValidateOnly {
 		path = binanceOrderTestPath
 	}
-	_, err := b.SendHTTPRequest(http.MethodPost, path, v, true, &response)
+	_, err := b.SendHTTPRequest(http.MethodPost, path, v, RequestSecuritySign, &response)
 	return &response, err
 }
 
@@ -153,7 +153,7 @@ func (b *Binance) FetchOrder(symbol string, orderID int64, clientOrderID string)
 		v.Set("origClientOrderId", clientOrderID)
 	}
 	response := Order{}
-	_, err := b.SendHTTPRequest(http.MethodGet, binanceOrderPath, v, true, &response)
+	_, err := b.SendHTTPRequest(http.MethodGet, binanceOrderPath, v, RequestSecuritySign, &response)
 	return &response, err
 }
 
@@ -168,7 +168,7 @@ func (b *Binance) DeleteOrder(symbol string, orderID int64, clientOrderID string
 		v.Set("origClientOrderId", clientOrderID)
 	}
 	response := DeleteOrderResponse{}
-	_, err := b.SendHTTPRequest(http.MethodDelete, binanceOrderPath, v, true, &response)
+	_, err := b.SendHTTPRequest(http.MethodDelete, binanceOrderPath, v, RequestSecuritySign, &response)
 	return err
 }
 
@@ -188,18 +188,29 @@ func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, erro
 		lastMarketData = &MarketData{}
 	}
 	response := MarketData{}
-	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceDepthPath, v, false,
+	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceDepthPath, v, RequestSecurityAuth,
 		&response, lastMarketData)
 	b.lastMarketData[symbol] = &response
 	return &response, err
 }
 
+type RequestSecurityEnum uint8
+
+const (
+	// Don't send API key
+	RequestSecurityNone RequestSecurityEnum = iota
+	// Only send API key
+	RequestSecurityAuth
+	// Send API key & sign
+	RequestSecuritySign
+)
+
 // SendAuthenticatedHTTPRequest sends a POST request to an authenticated endpoint, the response is
 // decoded into the result object.
 // Returns the Binance error code and error message (if any).
-func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign bool,
+func (b *Binance) SendHTTPRequest(method, path string, params url.Values, security RequestSecurityEnum,
 	result interface{}) (int, error) {
-	if !b.AuthenticatedAPISupport {
+	if b.AuthenticatedAPISupport {
 		return 0, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, b.Name)
 	}
 
@@ -215,7 +226,7 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign b
 		payload = params.Encode()
 	}
 
-	if sign {
+	if security == RequestSecuritySign {
 		recvWindow := 5000
 		// HACK: Subtract 1 sec from the real timestamp to get around incessant timestamp errors
 		// from Binance.
@@ -228,6 +239,9 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign b
 		}
 		hmac := common.GetHMAC(common.HashSHA256, []byte(payload), []byte(b.APISecret))
 		payload = fmt.Sprintf("%s&signature=%s", payload, hex.EncodeToString(hmac))
+	}
+
+	if security != RequestSecurityNone {
 		headers["X-MBX-APIKEY"] = []string{b.APIKey}
 	}
 
@@ -271,7 +285,7 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, sign b
 // result parameter. If the number of requests per minute has been exceeded this method will
 // set the result to the default value (which can be a pointer, but must not be nil).
 func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string, path string,
-	params url.Values, sign bool, result interface{}, defaultValue interface{}) error {
+	params url.Values, security RequestSecurityEnum, result interface{}, defaultValue interface{}) error {
 	curTimestamp := time.Now().UnixNano() / (1000 * 1000) // convert to milliseconds
 	requestDelay := int64((60 * 1000) / requestsPerMin)   // min delay between requests in msecs
 	lastRequestTime := b.rateLimits[method+path]
@@ -283,7 +297,7 @@ func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string,
 	}
 
 	if !skipRequest {
-		code, err := b.SendHTTPRequest(method, path, params, sign, result)
+		code, err := b.SendHTTPRequest(method, path, params, security, result)
 		if err != nil {
 			if BinanceErrCode(code) == TooManyRequestsErrCode {
 				b.ipBanStartTime = curTimestamp
@@ -305,7 +319,7 @@ func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string,
 		}
 		dv := reflect.ValueOf(defaultValue)
 		if !dv.IsValid() {
-			return errors.New("default value must be not be nil")
+			return errors.New("default value must not be nil")
 		}
 		if dv.Kind() == reflect.Ptr {
 			reflect.Indirect(rv).Set(dv.Elem())
