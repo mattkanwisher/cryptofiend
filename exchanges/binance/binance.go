@@ -87,13 +87,16 @@ func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 }
 
 // FetchOpenOrders fetches all currently open orders.
-func (b *Binance) FetchOpenOrders() ([]Order, error) {
+// If the symbol parameter is blank all open orders for the account will be returned,
+// this should generally be avoided as it's an expensive operation that can very quickly put
+// you over the request rate limit if this method is called multiple times per minute.
+func (b *Binance) FetchOpenOrders(symbol string) ([]Order, error) {
+	v := url.Values{}
+	if symbol != "" {
+		v.Set("symbol", symbol)
+	}
 	response := []Order{}
-	// TODO: This endpoint takes an optional list of symbols to return orders for, it's cheaper
-	// to query only a few symbols rather than all of them from a rate limiting standpoint.
-	// At 20 reqs/min you'll get IP banned in less than a minute... dropping down to 10 to see
-	// if that's better... but probably really do have to be selective with the symbols.
-	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, nil,
+	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, v,
 		RequestSecuritySign, &response, b.lastOpenOrders)
 	b.lastOpenOrders = response
 	return response, err

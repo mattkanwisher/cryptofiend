@@ -568,7 +568,7 @@ func (p *Poloniex) convertOrderToExchangeOrder(order *PoloniexOrder, symbol stri
 	return retOrder
 }
 
-func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
+func (p *Poloniex) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	ret := []*exchange.Order{}
 
 	activeorders, err := p.GetAllOpenOrders()
@@ -578,6 +578,7 @@ func (p *Poloniex) GetOrders() ([]*exchange.Order, error) {
 
 	for symbol, orders := range activeorders.Data {
 		for _, order := range orders {
+			// TODO: filter out orders that don't match the given pairs
 			retOrder := p.convertOrderToExchangeOrder(order, symbol)
 			ret = append(ret, retOrder)
 		}

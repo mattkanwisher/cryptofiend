@@ -463,7 +463,7 @@ func tradeHistoryToExchangeOrders(symbol string, pastTrades []TradeHistory) []ex
 }
 
 // GetOrders returns the active exchange orders for this exchange account.
-func (g *Gemini) GetOrders() ([]*exchange.Order, error) {
+func (g *Gemini) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	// Fetch active orders.
 	orders, err := g.getOrders()
 	if err != nil {
@@ -472,6 +472,7 @@ func (g *Gemini) GetOrders() ([]*exchange.Order, error) {
 
 	ret := make([]*exchange.Order, 0, len(orders))
 	for _, order := range orders {
+		// TODO: filter out orders that don't match the given pairs
 		exchangeOrder := orderToExchangeOrder(order)
 		ret = append(ret, exchangeOrder)
 	}

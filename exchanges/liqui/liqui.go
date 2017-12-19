@@ -317,9 +317,9 @@ func (l *Liqui) convertOrderToExchangeOrder(orderID string, order *OrderInfo) *e
 	return retOrder
 }
 
-func (l *Liqui) GetOrders() ([]*exchange.Order, error) {
+func (l *Liqui) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	ret := []*exchange.Order{}
-	//todo blank should be  "all pairs"
+	// TODO: filter out orders that don't match the given pairs
 	activeorders, err := l.GetActiveOrders("")
 	if err != nil {
 		return ret, err

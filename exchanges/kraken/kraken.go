@@ -205,7 +205,7 @@ func (k *Kraken) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exch
 	panic("not implemented")
 }
 
-func (k *Kraken) GetOrders() ([]*exchange.Order, error) {
+func (k *Kraken) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	orders, err := k.GetOpenOrders(false, 0)
 	if err != nil {
 		return nil, err
@@ -213,6 +213,7 @@ func (k *Kraken) GetOrders() ([]*exchange.Order, error) {
 
 	ret := []*exchange.Order{}
 	for orderID, order := range orders {
+		// TODO: filter out orders that don't match the given pairs
 		exchangeOrder, err := k.convertOrderToExchangeOrder(orderID, &order)
 		if err != nil {
 			log.Print(err)

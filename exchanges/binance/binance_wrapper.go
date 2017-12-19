@@ -223,15 +223,32 @@ func (b *Binance) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exc
 }
 
 // GetOrders returns information about currently active orders.
-func (b *Binance) GetOrders() ([]*exchange.Order, error) {
-	orders, err := b.FetchOpenOrders()
-	if err != nil {
-		return nil, err
+func (b *Binance) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
+	ret := []*exchange.Order{}
+
+	if len(pairs) > 0 {
+		for _, p := range pairs {
+			symbol := b.CurrencyPairToSymbol(p)
+			orders, err := b.FetchOpenOrders(symbol)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, order := range orders {
+				ret = append(ret, b.convertOrderToExchangeOrder(&order))
+			}
+		}
+	} else {
+		orders, err := b.FetchOpenOrders("")
+		if err != nil {
+			return nil, err
+		}
+
+		for _, order := range orders {
+			ret = append(ret, b.convertOrderToExchangeOrder(&order))
+		}
 	}
-	ret := make([]*exchange.Order, 0, len(orders))
-	for _, order := range orders {
-		ret = append(ret, b.convertOrderToExchangeOrder(&order))
-	}
+
 	return ret, nil
 }
 

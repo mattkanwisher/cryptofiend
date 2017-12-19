@@ -375,9 +375,10 @@ func (b *Bittrex) NewOrder(
 	return orderID, err
 }
 
-func (b *Bittrex) GetOrders() ([]*exchange.Order, error) {
+func (b *Bittrex) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	ret := []*exchange.Order{}
 
+	// TODO: filter out orders that don't match the given pairs
 	orders, err := b.GetOpenOrders("")
 	if err != nil {
 		return ret, err

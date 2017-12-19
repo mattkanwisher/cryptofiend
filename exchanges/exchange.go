@@ -134,7 +134,9 @@ type IBotExchangeEx interface {
 	// The currency pair may be required for some exchanges.
 	GetOrder(orderID string, currencyPair pair.CurrencyPair) (*Order, error)
 	// GetOrders returns information about currently active orders.
-	GetOrders() ([]*Order, error)
+	// The pairs parameter should contain the currency pairs for which active orders should be retrieved,
+	// if this is parameter is nil or empty then all active orders will be retrieved.
+	GetOrders(pairs []pair.CurrencyPair) ([]*Order, error)
 	// GetLimits returns price/amount limits for the exchange.
 	GetLimits() ILimits
 	// Returns currency pairs that can be used by the exchange account associated with this bot.

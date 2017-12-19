@@ -613,13 +613,14 @@ func (b *Bitfinex) GetActiveOrders() ([]Order, error) {
 		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrders, nil, &response)
 }
 
-func (b *Bitfinex) GetOrders() ([]*exchange.Order, error) {
+func (b *Bitfinex) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
 	orders, err := b.GetActiveOrders()
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]*exchange.Order, 0, len(orders))
 	for _, order := range orders {
+		// TODO: filter out orders that don't match the given pairs
 		ret = append(ret, b.convertOrderToExchangeOrder(&order))
 	}
 	return ret, nil
