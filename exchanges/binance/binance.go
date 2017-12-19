@@ -210,7 +210,7 @@ const (
 // Returns the Binance error code and error message (if any).
 func (b *Binance) SendHTTPRequest(method, path string, params url.Values, security RequestSecurityEnum,
 	result interface{}) (int, error) {
-	if b.AuthenticatedAPISupport {
+	if (security != RequestSecurityNone) && !b.AuthenticatedAPISupport {
 		return 0, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, b.Name)
 	}
 
