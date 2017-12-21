@@ -179,6 +179,7 @@ func (b *Binance) DeleteOrder(symbol string, orderID int64, clientOrderID string
 // The limit parameter can be -1, 0, 5, 10, 20, 50, 100, 200, 1000.
 // Set the limit to -1 to use the default value (currently 100), or to 0 to disable the limit
 // (this can return a lot of data, so should avoided).
+// NOTE: Unlike most other exchange Binance requires a valid API key when fetching market data.
 func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, error) {
 	v := url.Values{}
 	v.Set("symbol", symbol)
