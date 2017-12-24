@@ -1,5 +1,9 @@
 package bitfinex
 
+import (
+	"github.com/shopspring/decimal"
+)
+
 // Ticker holds basic ticker information from the exchange
 type Ticker struct {
 	Mid       float64 `json:"mid,string"`
@@ -172,12 +176,23 @@ type MarginLimits struct {
 	TradableBalance   float64 `json:"tradable_balance,string"`
 }
 
+type WalletType string
+
+const (
+	// WalletTypeExchange contains funds that can be used for regular orders
+	WalletTypeExchange = "exchange"
+	// WalletTypeMargin contains funds that can be used for margin orders
+	WalletTypeMargin = "trading"
+	// WalletTypeFunding contains funds that can be used to provide funding for other traders
+	WalletTypeFunding = "deposit"
+)
+
 // Balance holds current balance data
 type Balance struct {
-	Type      string  `json:"type"`
-	Currency  string  `json:"currency"`
-	Amount    float64 `json:"amount,string"`    // Current balance
-	Available float64 `json:"available,string"` // Amount available for trading
+	Type      WalletType      `json:"type"`
+	Currency  string          `json:"currency"`
+	Amount    decimal.Decimal `json:"amount,string"`    // Current balance
+	Available decimal.Decimal `json:"available,string"` // Amount available for trading
 }
 
 // WalletTransfer holds status of wallet to wallet content transfer on exchange

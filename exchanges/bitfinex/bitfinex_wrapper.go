@@ -9,7 +9,6 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
-	"github.com/shopspring/decimal"
 )
 
 // Start starts the Bitfinex go routine
@@ -123,42 +122,23 @@ func (b *Bitfinex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 	if err != nil {
 		return response, err
 	}
+
 	if !b.Enabled {
 		return response, nil
 	}
 
-	type walletBalance struct {
-		OnHold    decimal.Decimal
-		Available decimal.Decimal
-	}
-
-	// TODO: Figure out if it makes sense to add up all the wallet balances together or if we
-	// should only grab the amounts from the "exchange" wallet.
-	accounts := make(map[string]walletBalance)
-
 	for i := range accountBalance {
+		// Only load the balance from the exchange wallet for now.
+		if accountBalance[i].Type != WalletTypeExchange {
+			continue
+		}
 		src := &accountBalance[i]
-		balance := walletBalance{
-			OnHold:    decimal.NewFromFloat(src.Amount).Sub(decimal.NewFromFloat(src.Available)),
-			Available: decimal.NewFromFloat(src.Available),
-		}
-		result, ok := accounts[accountBalance[i].Currency]
-		if !ok {
-			accounts[accountBalance[i].Currency] = balance
-		} else {
-			result.Available = result.Available.Add(balance.Available)
-			result.OnHold = result.OnHold.Add(balance.OnHold)
-			accounts[src.Currency] = result
-		}
-	}
-
-	for currency, src := range accounts {
 		exchangeCurrency := exchange.AccountCurrencyInfo{
-			CurrencyName: common.StringToUpper(currency),
+			CurrencyName: common.StringToUpper(src.Currency),
 		}
-		exchangeCurrency.Hold, _ = src.OnHold.Float64()
+		exchangeCurrency.Hold, _ = src.Amount.Sub(src.Available).Float64()
 		exchangeCurrency.Available, _ = src.Available.Float64()
-		exchangeCurrency.TotalValue, _ = src.Available.Add(src.OnHold).Float64()
+		exchangeCurrency.TotalValue, _ = src.Amount.Float64()
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 
