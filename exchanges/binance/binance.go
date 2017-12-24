@@ -47,7 +47,7 @@ type Binance struct {
 	symbolDetailsMap map[pair.CurrencyItem]*symbolDetails
 	// Cached data that's returned when HTTP requests are rate-limited
 	lastAccountInfo AccountInfo
-	lastOpenOrders  []Order
+	lastOpenOrders  map[string][]Order
 	lastMarketData  map[string]*MarketData
 }
 
@@ -95,10 +95,11 @@ func (b *Binance) FetchOpenOrders(symbol string) ([]Order, error) {
 	if symbol != "" {
 		v.Set("symbol", symbol)
 	}
+	lastOpenOrders := b.lastOpenOrders[symbol]
 	response := []Order{}
 	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, v,
-		RequestSecuritySign, &response, b.lastOpenOrders)
-	b.lastOpenOrders = response
+		RequestSecuritySign, &response, lastOpenOrders)
+	b.lastOpenOrders[symbol] = response
 	return response, err
 }
 

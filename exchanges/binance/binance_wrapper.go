@@ -28,6 +28,7 @@ func (b *Binance) SetDefaults() {
 	b.AssetTypes = []string{ticker.Spot}
 	b.Orderbooks = orderbook.Init()
 	b.rateLimits = map[string]int64{}
+	b.lastOpenOrders = map[string][]Order{}
 	b.lastMarketData = map[string]*MarketData{}
 }
 
