@@ -75,6 +75,8 @@ func (b *Binance) FetchExchangeInfo() (*ExchangeInfo, error) {
 }
 
 // FetchAccountInfo fetches current account information.
+// If this method gets rate limited it will return the account info obtained during the
+// last successful fetch, and an error matching exchange.WarningHTTPRequestRateLimited.
 func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 	response := AccountInfo{}
 	err := b.SendRateLimitedHTTPRequest(20, http.MethodGet, binanceAccountPath, nil,
@@ -90,6 +92,8 @@ func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 // If the symbol parameter is blank all open orders for the account will be returned,
 // this should generally be avoided as it's an expensive operation that can very quickly put
 // you over the request rate limit if this method is called multiple times per minute.
+// If this method gets rate limited it will return the set of orders obtained during the
+// last successful fetch, and an error matching exchange.WarningHTTPRequestRateLimited.
 func (b *Binance) FetchOpenOrders(symbol string) ([]Order, error) {
 	v := url.Values{}
 	if symbol != "" {
@@ -181,6 +185,8 @@ func (b *Binance) DeleteOrder(symbol string, orderID int64, clientOrderID string
 // Set the limit to -1 to use the default value (currently 100), or to 0 to disable the limit
 // (this can return a lot of data, so should avoided).
 // NOTE: Unlike most other exchange Binance requires a valid API key when fetching market data.
+// If this method gets rate limited it will return the market data obtained during the
+// last successful fetch, and an error matching exchange.WarningHTTPRequestRateLimited.
 func (b *Binance) FetchMarketData(symbol string, limit int64) (*MarketData, error) {
 	v := url.Values{}
 	v.Set("symbol", symbol)
@@ -288,7 +294,8 @@ func (b *Binance) SendHTTPRequest(method, path string, params url.Values, securi
 // SendRateLimitedHTTPRequest sends an HTTP request if the given number of requests per minute
 // hasn't been exceeded for the specified method & path and unmarshals the response into the
 // result parameter. If the number of requests per minute has been exceeded this method will
-// set the result to the default value (which can be a pointer, but must not be nil).
+// set the result to the default value (which can be a pointer, but must not be nil), and return
+// exchange.WarningHTTPRequestRateLimited.
 func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string, path string,
 	params url.Values, security RequestSecurityEnum, result interface{}, defaultValue interface{}) error {
 	curTimestamp := time.Now().UnixNano() / (1000 * 1000) // convert to milliseconds
@@ -331,6 +338,8 @@ func (b *Binance) SendRateLimitedHTTPRequest(requestsPerMin uint, method string,
 		} else {
 			reflect.Indirect(rv).Set(dv)
 		}
+
+		return exchange.WarningHTTPRequestRateLimited()
 	}
 
 	return nil

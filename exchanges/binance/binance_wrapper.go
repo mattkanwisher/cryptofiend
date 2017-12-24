@@ -129,7 +129,7 @@ func (b *Binance) UpdateOrderbook(p pair.CurrencyPair, assetType string) (orderb
 	symbol := b.CurrencyPairToSymbol(p)
 	marketData, err := b.FetchMarketData(symbol, 100)
 
-	if err != nil {
+	if (err != nil) && (err != exchange.WarningHTTPRequestRateLimited()) {
 		return book, err
 	}
 
@@ -162,7 +162,7 @@ func (b *Binance) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 	}
 
 	accountInfo, err := b.FetchAccountInfo()
-	if err != nil {
+	if (err != nil) && (err != exchange.WarningHTTPRequestRateLimited()) {
 		return result, err
 	}
 	result.Currencies = make([]exchange.AccountCurrencyInfo, len(accountInfo.Balances))
@@ -225,14 +225,21 @@ func (b *Binance) GetOrder(orderID string, currencyPair pair.CurrencyPair) (*exc
 }
 
 // GetOrders returns information about currently active orders.
+// If this method gets rate limited it will return the set of orders obtained during the
+// last successful fetch, and an error matching exchange.WarningHTTPRequestRateLimited.
 func (b *Binance) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
+	var retErr error
 	ret := []*exchange.Order{}
 
 	if len(pairs) > 0 {
+		rateLimitedPairCount := 0
 		for _, p := range pairs {
 			symbol := b.CurrencyPairToSymbol(p)
 			orders, err := b.FetchOpenOrders(symbol)
-			if err != nil {
+
+			if err == exchange.WarningHTTPRequestRateLimited() {
+				rateLimitedPairCount++
+			} else if err != nil {
 				return nil, err
 			}
 
@@ -240,9 +247,15 @@ func (b *Binance) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error
 				ret = append(ret, b.convertOrderToExchangeOrder(&order))
 			}
 		}
+		if rateLimitedPairCount == len(pairs) {
+			retErr = exchange.WarningHTTPRequestRateLimited()
+		}
 	} else {
 		orders, err := b.FetchOpenOrders("")
-		if err != nil {
+
+		if err == exchange.WarningHTTPRequestRateLimited() {
+			retErr = err
+		} else if err != nil {
 			return nil, err
 		}
 
@@ -251,7 +264,7 @@ func (b *Binance) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error
 		}
 	}
 
-	return ret, nil
+	return ret, retErr
 }
 
 func (b *Binance) convertOrderToExchangeOrder(order *Order) *exchange.Order {

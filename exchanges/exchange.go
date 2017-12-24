@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -22,6 +23,14 @@ const (
 	// ErrExchangeOrderNotFound is one of the possible errors returned by IBotExchangeEx.GetOrder()
 	ErrOrderNotFound = "Exchange order not found."
 )
+
+var warningHTTPRequestRateLimited = errors.New("HTTP request was rate limited.")
+
+// WarningHTTPRequestRateLimited() returns an error that indicates that a method of the
+// IBotExchangeEx interface was rate limited.
+func WarningHTTPRequestRateLimited() error {
+	return warningHTTPRequestRateLimited
+}
 
 // AccountInfo is a Generic type to hold each exchange's holdings in
 // all enabled currencies
