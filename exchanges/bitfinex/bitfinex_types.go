@@ -176,8 +176,8 @@ type MarginLimits struct {
 type Balance struct {
 	Type      string  `json:"type"`
 	Currency  string  `json:"currency"`
-	Amount    float64 `json:"amount,string"`
-	Available float64 `json:"available,string"`
+	Amount    float64 `json:"amount,string"`    // Current balance
+	Available float64 `json:"available,string"` // Amount available for trading
 }
 
 // WalletTransfer holds status of wallet to wallet content transfer on exchange

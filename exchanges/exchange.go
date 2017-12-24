@@ -42,8 +42,9 @@ type AccountInfo struct {
 // AccountCurrencyInfo is a sub type to store currency name and value
 type AccountCurrencyInfo struct {
 	CurrencyName string
-	TotalValue   float64
-	Hold         float64
+	TotalValue   float64 // Hold + Available
+	Hold         float64 // Amount on hold (used for currently open orders)
+	Available    float64 // Amount actually available for placing orders
 }
 
 type OrderType string

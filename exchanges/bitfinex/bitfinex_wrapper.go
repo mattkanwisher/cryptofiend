@@ -9,6 +9,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 )
 
 // Start starts the Bitfinex go routine
@@ -126,34 +127,38 @@ func (b *Bitfinex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		return response, nil
 	}
 
-	type bfxCoins struct {
-		OnHold    float64
-		Available float64
+	type walletBalance struct {
+		OnHold    decimal.Decimal
+		Available decimal.Decimal
 	}
 
-	accounts := make(map[string]bfxCoins)
+	// TODO: Figure out if it makes sense to add up all the wallet balances together or if we
+	// should only grab the amounts from the "exchange" wallet.
+	accounts := make(map[string]walletBalance)
 
 	for i := range accountBalance {
-		onHold := accountBalance[i].Amount - accountBalance[i].Available
-		coins := bfxCoins{
-			OnHold:    onHold,
-			Available: accountBalance[i].Available,
+		src := &accountBalance[i]
+		balance := walletBalance{
+			OnHold:    decimal.NewFromFloat(src.Amount).Sub(decimal.NewFromFloat(src.Available)),
+			Available: decimal.NewFromFloat(src.Available),
 		}
 		result, ok := accounts[accountBalance[i].Currency]
 		if !ok {
-			accounts[accountBalance[i].Currency] = coins
+			accounts[accountBalance[i].Currency] = balance
 		} else {
-			result.Available += accountBalance[i].Available
-			result.OnHold += onHold
-			accounts[accountBalance[i].Currency] = result
+			result.Available = result.Available.Add(balance.Available)
+			result.OnHold = result.OnHold.Add(balance.OnHold)
+			accounts[src.Currency] = result
 		}
 	}
 
-	for x, y := range accounts {
-		var exchangeCurrency exchange.AccountCurrencyInfo
-		exchangeCurrency.CurrencyName = common.StringToUpper(x)
-		exchangeCurrency.TotalValue = y.Available + y.OnHold
-		exchangeCurrency.Hold = y.OnHold
+	for currency, src := range accounts {
+		exchangeCurrency := exchange.AccountCurrencyInfo{
+			CurrencyName: common.StringToUpper(currency),
+		}
+		exchangeCurrency.Hold, _ = src.OnHold.Float64()
+		exchangeCurrency.Available, _ = src.Available.Float64()
+		exchangeCurrency.TotalValue, _ = src.Available.Add(src.OnHold).Float64()
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 

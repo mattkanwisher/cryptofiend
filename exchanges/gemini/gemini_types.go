@@ -139,8 +139,8 @@ type TradeVolume struct {
 // Balance is a simple balance type
 type Balance struct {
 	Currency  string  `json:"currency"`
-	Amount    float64 `json:"amount,string"`
-	Available float64 `json:"available,string"`
+	Amount    float64 `json:"amount,string"`    // Current balance
+	Available float64 `json:"available,string"` // Amount available to trade
 }
 
 // DepositAddress holds assigned deposit address for a specific currency

@@ -8,6 +8,7 @@ import (
 	"github.com/mattkanwisher/cryptofiend/exchanges"
 	"github.com/mattkanwisher/cryptofiend/exchanges/orderbook"
 	"github.com/mattkanwisher/cryptofiend/exchanges/ticker"
+	"github.com/shopspring/decimal"
 )
 
 // Start starts the Bittrex go routine
@@ -81,10 +82,14 @@ func (b *Bittrex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 	}
 
 	for i := 0; i < len(accountBalance); i++ {
-		var exchangeCurrency exchange.AccountCurrencyInfo
-		exchangeCurrency.CurrencyName = accountBalance[i].Currency
-		exchangeCurrency.TotalValue = accountBalance[i].Balance
-		exchangeCurrency.Hold = accountBalance[i].Balance - accountBalance[i].Available
+		src := &accountBalance[i]
+		exchangeCurrency := exchange.AccountCurrencyInfo{
+			CurrencyName: src.Currency,
+			TotalValue:   src.Balance,
+			Available:    src.Available,
+		}
+		exchangeCurrency.Hold, _ = decimal.NewFromFloat(src.Balance).
+			Sub(decimal.NewFromFloat(src.Available)).Float64()
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 	return response, nil

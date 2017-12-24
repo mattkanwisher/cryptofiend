@@ -115,10 +115,13 @@ func (p *Poloniex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		return response, err
 	}
 
-	for x, y := range accountBalance.Currency {
-		var exchangeCurrency exchange.AccountCurrencyInfo
-		exchangeCurrency.CurrencyName = x
-		exchangeCurrency.TotalValue = y
+	for currency, availableAmount := range accountBalance.Currency {
+		exchangeCurrency := exchange.AccountCurrencyInfo{
+			CurrencyName: currency,
+			TotalValue:   availableAmount, // not entirely accurate, but probably better than leaving it as zero
+			Available:    availableAmount,
+			Hold:         0, // Poloniex doesn't provide this amount
+		}
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 	return response, nil

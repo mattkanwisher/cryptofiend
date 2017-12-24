@@ -172,6 +172,7 @@ func (b *Binance) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		dest := &result.Currencies[i]
 		dest.CurrencyName = src.Asset
 		dest.Hold = src.Locked
+		dest.Available = src.Free
 		dest.TotalValue, _ = decimal.NewFromFloat(src.Free).Add(decimal.NewFromFloat(src.Locked)).Float64()
 	}
 	return result, nil

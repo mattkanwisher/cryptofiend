@@ -115,11 +115,13 @@ func (l *Liqui) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 		return response, err
 	}
 
-	for x, y := range accountBalance.Funds {
-		var exchangeCurrency exchange.AccountCurrencyInfo
-		exchangeCurrency.CurrencyName = common.StringToUpper(x)
-		exchangeCurrency.TotalValue = y
-		exchangeCurrency.Hold = 0
+	for currency, availableAmount := range accountBalance.Funds {
+		exchangeCurrency := exchange.AccountCurrencyInfo{
+			CurrencyName: common.StringToUpper(currency),
+			TotalValue:   availableAmount, // not accurate, but better than zero probably
+			Available:    availableAmount,
+			Hold:         0, // Liqui doesn't provide the amount used for currently open orders
+		}
 		response.Currencies = append(response.Currencies, exchangeCurrency)
 	}
 
