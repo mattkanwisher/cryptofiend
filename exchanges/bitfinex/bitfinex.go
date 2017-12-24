@@ -194,6 +194,12 @@ func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
 	return 0
 }
 
+// Returns the minimum trade total (amount * price) for the given currency pair.
+func (cl *currencyLimits) GetMinTotal(p pair.CurrencyPair) float64 {
+	// Not specified by the exchange.
+	return 0
+}
+
 // GetLimits returns price/amount limits for the exchange.
 func (b *Bitfinex) GetLimits() exchange.ILimits {
 	return newCurrencyLimits(b.Name, b.symbolDetails)

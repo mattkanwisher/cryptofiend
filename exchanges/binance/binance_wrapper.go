@@ -91,6 +91,8 @@ func (b *Binance) Run() {
 			case FilterTypeLotSize:
 				sd.AmountDecimalPlaces = filter.StepSize.Exponent() * -1
 				sd.MinAmount, _ = filter.MinQty.Float64()
+			case FilterTypeMinNotional:
+				sd.MinTotal, _ = filter.MinNotional.Float64()
 			default:
 				// ignore
 			}
@@ -316,6 +318,7 @@ type symbolDetails struct {
 	PriceDecimalPlaces  int32
 	AmountDecimalPlaces int32
 	MinAmount           float64
+	MinTotal            float64
 }
 
 type currencyLimits struct {
@@ -353,6 +356,15 @@ func (cl *currencyLimits) GetMinAmount(p pair.CurrencyPair) float64 {
 	k := p.Display("/", false)
 	if v, exists := cl.data[k]; exists {
 		return v.MinAmount
+	}
+	return 0
+}
+
+// Returns the minimum trade total (amount * price) for the given currency pair.
+func (cl *currencyLimits) GetMinTotal(p pair.CurrencyPair) float64 {
+	k := p.Display("/", false)
+	if v, exists := cl.data[k]; exists {
+		return v.MinTotal
 	}
 	return 0
 }
