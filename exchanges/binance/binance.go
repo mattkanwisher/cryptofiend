@@ -85,7 +85,7 @@ func (b *Binance) FetchAccountInfo() (*AccountInfo, error) {
 		return &response, err
 	}
 	b.lastAccountInfo = response
-	return &response, err
+	return &response, nil
 }
 
 // FetchOpenOrders fetches all currently open orders.
@@ -100,11 +100,17 @@ func (b *Binance) FetchOpenOrders(symbol string) ([]Order, error) {
 		v.Set("symbol", symbol)
 	}
 	lastOpenOrders := b.lastOpenOrders[symbol]
+	if lastOpenOrders == nil {
+		lastOpenOrders = []Order{}
+	}
 	response := []Order{}
 	err := b.SendRateLimitedHTTPRequest(10, http.MethodGet, binanceOpenOrdersPath, v,
 		RequestSecuritySign, &response, lastOpenOrders)
+	if err != nil {
+		return response, err
+	}
 	b.lastOpenOrders[symbol] = response
-	return response, err
+	return response, nil
 }
 
 type PostOrderParams struct {
