@@ -97,7 +97,8 @@ type Bitfinex struct {
 	// Timestamp (in msecs) of the last time the Binance server rate limited a request
 	ipBanStartTime int64
 	// Cached stuff that's behind rate limited REST API endpoints
-	lastBalances []Balance
+	lastBalances     []Balance
+	lastActiveOrders []Order
 }
 
 // SetDefaults sets the basic defaults for bitfinex
@@ -116,6 +117,7 @@ func (b *Bitfinex) SetDefaults() {
 	b.Orderbooks = orderbook.Init()
 	b.rateLimits = map[string]int64{}
 	b.lastBalances = []Balance{}
+	b.lastActiveOrders = []Order{}
 }
 
 // Setup takes in the supplied exchange configuration details and sets params
@@ -615,22 +617,32 @@ func (b *Bitfinex) convertOrderToExchangeOrder(order *Order) *exchange.Order {
 // GetActiveOrders returns all active orders and statuses
 func (b *Bitfinex) GetActiveOrders() ([]Order, error) {
 	response := []Order{}
-
-	return response,
-		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrders, nil, &response)
+	err := b.SendRateLimitedHTTPRequest(10, http.MethodPost, bitfinexAPIVersion1, bitfinexOrders,
+		nil, &response, b.lastActiveOrders)
+	if err != nil {
+		return response, err
+	}
+	b.lastActiveOrders = response
+	return response, nil
 }
 
 func (b *Bitfinex) GetOrders(pairs []pair.CurrencyPair) ([]*exchange.Order, error) {
+	var retErr error
 	orders, err := b.GetActiveOrders()
-	if err != nil {
+
+	if err == exchange.WarningHTTPRequestRateLimited() {
+		retErr = err
+	} else if err != nil {
 		return nil, err
 	}
+
 	ret := make([]*exchange.Order, 0, len(orders))
 	for _, order := range orders {
 		// TODO: filter out orders that don't match the given pairs
 		ret = append(ret, b.convertOrderToExchangeOrder(&order))
 	}
-	return ret, nil
+
+	return ret, retErr
 }
 
 // GetActivePositions returns an array of active positions
