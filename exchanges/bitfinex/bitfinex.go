@@ -372,7 +372,7 @@ func (b *Bitfinex) GetMarginInfo() ([]MarginInfo, error) {
 // GetAccountBalance returns full wallet balance information
 func (b *Bitfinex) GetAccountBalance() ([]Balance, error) {
 	response := []Balance{}
-	err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexAPIVersion1, bitfinexBalances, nil, &response, b.lastBalances)
+	err := b.SendRateLimitedHTTPRequest(12, "POST", bitfinexAPIVersion1, bitfinexBalances, nil, &response, b.lastBalances)
 	if err != nil {
 		return response, err
 	}
