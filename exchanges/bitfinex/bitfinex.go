@@ -76,12 +76,10 @@ const (
 // Error codes that may be returned by SendAuthenticatedHTTPRequest2
 const (
 	InvalidAPIKeyErrCode = 10100
+	MaintenanceErrCode   = 20060 // API endpoint under maintenance... try again later
 )
 
-type rateLimitInfo struct {
-	StartTime    int64
-	RequestCount uint
-}
+var errRateLimit = errors.New("ERR_RATE_LIMIT")
 
 // Bitfinex is the overarching type across the bitfinex package
 // Notes: Bitfinex has added a rate limit to the number of REST requests.
@@ -94,7 +92,10 @@ type Bitfinex struct {
 	// Maps symbol (exchange specific market identifier) to currency pair info
 	currencyPairs map[pair.CurrencyItem]*exchange.CurrencyPairInfo
 	symbolDetails map[pair.CurrencyItem]*SymbolDetails
-	rateLimits    map[string]*rateLimitInfo
+	// Maps HTTP method & path to a timestamp (in msecs) of the last time a request was sent
+	rateLimits map[string]int64
+	// Timestamp (in msecs) of the last time the Binance server rate limited a request
+	ipBanStartTime int64
 	// Cached stuff that's behind rate limited REST API endpoints
 	lastBalances []Balance
 }
@@ -113,7 +114,7 @@ func (b *Bitfinex) SetDefaults() {
 	b.ConfigCurrencyPairFormat.Uppercase = true
 	b.AssetTypes = []string{ticker.Spot}
 	b.Orderbooks = orderbook.Init()
-	b.rateLimits = map[string]*rateLimitInfo{}
+	b.rateLimits = map[string]int64{}
 	b.lastBalances = []Balance{}
 }
 
@@ -371,7 +372,7 @@ func (b *Bitfinex) GetAccountBalance() ([]Balance, error) {
 	response := []Balance{}
 	err := b.SendRateLimitedHTTPRequest(20, "POST", bitfinexAPIVersion1, bitfinexBalances, nil, &response, b.lastBalances)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	b.lastBalances = response
 	return response, nil
@@ -817,7 +818,6 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 		b.Nonce.Inc()
 	}
 
-	respErr := ErrorCapture{}
 	request := make(map[string]interface{})
 	request["request"] = fmt.Sprintf("/v%d/%s", bitfinexAPIVersion1, path)
 	request["nonce"] = b.Nonce.String()
@@ -855,9 +855,22 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 		log.Printf("Received raw: \n%s\n", resp)
 	}
 
+	respErr := ErrorCapture{}
 	if err = common.JSONDecode([]byte(resp), &respErr); err == nil {
 		if len(respErr.Message) != 0 {
-			return errors.New("Responded Error Issue: " + respErr.Message)
+			return errors.New(respErr.Message)
+		}
+	}
+
+	type RateLimitErr struct {
+		Message string `json:"error"`
+	}
+	rateLimitErr := RateLimitErr{}
+	if err = common.JSONDecode([]byte(resp), &rateLimitErr); err == nil {
+		if rateLimitErr.Message == "ERR_RATE_LIMIT" {
+			return errRateLimit
+		} else if len(rateLimitErr.Message) != 0 {
+			return errors.New(respErr.Message)
 		}
 	}
 
@@ -944,23 +957,43 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest2(method, path string, params map
 // SendRateLimitedHTTPRequest sends an HTTP request if the given number of requests per minute
 // hasn't been exceeded for the specified method & path and unmarshals the response into the
 // result parameter. If the number of requests per minute has been exceeded this method will
-// set the result to the default value (which can be a pointer, but must not be nil).
+// set the result to the default value (which can be a pointer, but must not be nil), and return
+// exchange.WarningHTTPRequestRateLimited.
 func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method string, apiVersion uint8,
 	path string, params map[string]interface{}, result interface{}, defaultValue interface{}) error {
-	rateLimit := b.rateLimits[method+path]
-	if rateLimit == nil {
-		rateLimit = &rateLimitInfo{}
-		b.rateLimits[method+path] = rateLimit
+	curTimestamp := time.Now().UnixNano() / (1000 * 1000) // convert to milliseconds
+	requestDelay := int64((60 * 1000) / requestsPerMin)   // min delay between requests in msecs
+	lastRequestTime := b.rateLimits[method+path]
+	// If we got IP banned wait 1 min before trying again
+	skipRequest := (b.ipBanStartTime != 0) && ((curTimestamp - b.ipBanStartTime) < (60 * 1000))
+	// Make sure requests are spaced out to avoid getting IP banned in the first place.
+	if !skipRequest {
+		skipRequest = (curTimestamp - lastRequestTime) < requestDelay
 	}
 
-	curTimeStamp := time.Now().Unix()
-	if (rateLimit.StartTime == 0) || ((curTimeStamp - rateLimit.StartTime) > 90) {
-		rateLimit.RequestCount = 0
-		rateLimit.StartTime = curTimeStamp
+	if !skipRequest {
+		var err error
+		switch apiVersion {
+		case bitfinexAPIVersion1:
+			err = b.SendAuthenticatedHTTPRequest(method, path, params, result)
+		case bitfinexAPIVersion2:
+			_, err = b.SendAuthenticatedHTTPRequest2(method, path, params, result)
+		default:
+			err = errors.New("invalid API version")
+		}
+
+		if err == errRateLimit {
+			b.ipBanStartTime = curTimestamp
+			skipRequest = true
+		} else if err != nil {
+			return err
+		} else {
+			b.ipBanStartTime = 0
+			b.rateLimits[method+path] = curTimestamp
+		}
 	}
-	if rateLimit.RequestCount < requestsPerMin {
-		rateLimit.RequestCount++
-	} else {
+
+	if skipRequest {
 		// set result to default value
 		rv := reflect.ValueOf(result)
 		if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -975,16 +1008,8 @@ func (b *Bitfinex) SendRateLimitedHTTPRequest(requestsPerMin uint, method string
 		} else {
 			reflect.Indirect(rv).Set(dv)
 		}
-		return nil
+		return exchange.WarningHTTPRequestRateLimited()
 	}
 
-	switch apiVersion {
-	case bitfinexAPIVersion1:
-		return b.SendAuthenticatedHTTPRequest(method, path, params, result)
-	case bitfinexAPIVersion2:
-		_, err := b.SendAuthenticatedHTTPRequest2(method, path, params, result)
-		return err
-	default:
-		return errors.New("invalid API version")
-	}
+	return nil
 }
