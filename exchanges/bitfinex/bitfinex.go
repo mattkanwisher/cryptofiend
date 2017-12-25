@@ -444,14 +444,15 @@ func (b *Bitfinex) Withdrawal(withdrawType, wallet, address string, amount float
 
 // newOrder submits a new order and returns a order information
 // Major Upgrade needed on this function to include all query params
-func (b *Bitfinex) newOrder(symbol string, amount float64, price float64, side, Type string, hidden bool) (Order, error) {
+func (b *Bitfinex) newOrder(symbol string, amount float64, price float64, side string,
+	orderType OrderType, hidden bool) (Order, error) {
 	response := Order{}
 	request := make(map[string]interface{})
 	request["symbol"] = symbol
 	request["amount"] = strconv.FormatFloat(amount, 'f', -1, 64)
 	request["price"] = strconv.FormatFloat(price, 'f', -1, 64)
 	request["exchange"] = "bitfinex"
-	request["type"] = Type
+	request["type"] = string(orderType)
 	request["is_hidden"] = hidden
 	request["side"] = side // this exchange uses the string buy/sell so no conversion neccessary
 
@@ -464,12 +465,12 @@ func (b *Bitfinex) NewOrder(currencyPair pair.CurrencyPair, amount, price float6
 	side exchange.OrderSide, orderType exchange.OrderType) (string, error) {
 	symbol := b.CurrencyPairToSymbol(currencyPair)
 
-	var bitfinexOrderType string
+	var bitfinexOrderType OrderType
 	switch orderType {
 	case exchange.OrderTypeMarginLimit:
-		bitfinexOrderType = "limit"
+		bitfinexOrderType = OrderTypeMarginLimit
 	case exchange.OrderTypeExchangeLimit:
-		bitfinexOrderType = "exchange limit"
+		bitfinexOrderType = OrderTypeExchangeLimit
 	default:
 		return "", fmt.Errorf("'%s' order type not currently supported for this exchange", string(orderType))
 	}
@@ -609,7 +610,11 @@ func (b *Bitfinex) convertOrderToExchangeOrder(order *Order) *exchange.Order {
 
 	retOrder.CurrencyPair, _ = b.SymbolToCurrencyPair(order.Symbol)
 	retOrder.Side = exchange.OrderSide(order.Side)
-	retOrder.Type = exchange.OrderType(order.Type)
+	if order.Type == OrderTypeExchangeLimit {
+		retOrder.Type = exchange.OrderTypeExchangeLimit
+	} else if order.Type == OrderTypeMarginLimit {
+		retOrder.Type = exchange.OrderTypeMarginLimit
+	}
 
 	return retOrder
 }
