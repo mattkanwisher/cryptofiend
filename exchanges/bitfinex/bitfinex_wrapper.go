@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/url"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/mattkanwisher/cryptofiend/common"
 	"github.com/mattkanwisher/cryptofiend/currency/pair"
 	"github.com/mattkanwisher/cryptofiend/exchanges"
@@ -143,4 +145,18 @@ func (b *Bitfinex) GetExchangeAccountInfo() (exchange.AccountInfo, error) {
 	}
 
 	return response, nil
+}
+
+// GetAvailableBalance will attempt to compute the available balance for an order with the
+// given parameters. This is primarily intended for checking the available balance for margin
+// orders, where simply checking the exchange wallet balance is not sufficient.
+func (b *Bitfinex) GetAvailableBalance(currencyPair pair.CurrencyPair, side exchange.OrderSide,
+	price float64, orderType exchange.OrderType) (float64, error) {
+	symbol := b.CurrencyPairToSymbol(currencyPair)
+	availableAmount, err := b.CalcAvailableBalance(symbol, side, price, orderType)
+	if err == nil {
+		amount, _ := decimal.NewFromFloat(availableAmount).Abs().Float64()
+		return amount, nil
+	}
+	return 0, err
 }
