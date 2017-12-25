@@ -839,12 +839,12 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 
 	PayloadBase64 := common.Base64Encode(PayloadJSON)
 	hmac := common.GetHMAC(common.HashSHA512_384, []byte(PayloadBase64), []byte(b.APISecret))
-	headers := make(map[string]string)
-	headers["X-BFX-APIKEY"] = b.APIKey
-	headers["X-BFX-PAYLOAD"] = PayloadBase64
-	headers["X-BFX-SIGNATURE"] = common.HexEncodeToString(hmac)
+	headers := make(http.Header)
+	headers["X-BFX-APIKEY"] = []string{b.APIKey}
+	headers["X-BFX-PAYLOAD"] = []string{PayloadBase64}
+	headers["X-BFX-SIGNATURE"] = []string{common.HexEncodeToString(hmac)}
 
-	resp, err := common.SendHTTPRequest(
+	resp, statusCode, err := common.SendHTTPRequest2(
 		method, bitfinexAPIURL+path, headers, strings.NewReader(""),
 	)
 	if err != nil {
@@ -872,6 +872,10 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 		} else if len(rateLimitErr.Message) != 0 {
 			return errors.New(respErr.Message)
 		}
+	}
+
+	if statusCode == 429 /* Too Many Requests */ {
+		return errRateLimit
 	}
 
 	if err = common.JSONDecode([]byte(resp), &result); err != nil {
@@ -927,6 +931,8 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest2(method, path string, params map
 		if err = common.JSONDecode([]byte(resp), &result); err != nil {
 			return statusCode, errors.New("SendAuthenticatedHTTPRequest2: Unable to JSON Unmarshal response")
 		}
+	} else if statusCode == 429 /* Too Many Requests */ {
+		return 0, errRateLimit
 	} else {
 		var errResp []interface{}
 		if err = common.JSONDecode([]byte(resp), &errResp); err == nil {
