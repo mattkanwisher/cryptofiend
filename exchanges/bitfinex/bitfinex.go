@@ -1,7 +1,6 @@
 package bitfinex
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -910,13 +909,9 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest2(method, path string, params map
 		return 0, fmt.Errorf(exchange.WarningAuthenticatedRequestWithoutCredentialsSet, b.Name)
 	}
 
-	if b.Nonce.Get() == 0 {
-		b.Nonce.Set(time.Now().UnixNano())
-	} else {
-		b.Nonce.Inc()
-	}
-
-	nonce := b.Nonce.String()
+	// Some trial & error has lead me to believe the current timestamp works best, at least for
+	// the current use case (which amounts to calling the bitfinexCalcAvailableBalance endpoint).
+	nonce := strconv.FormatInt(time.Now().UnixNano(), 10)
 	payloadJSON, err := common.JSONEncode(params)
 	if err != nil {
 		return 0, errors.New("SendAuthenticatedHTTPRequest2: Unable to JSON request")
@@ -935,7 +930,7 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest2(method, path string, params map
 	headers["bfx-apikey"] = []string{b.APIKey}
 	headers["bfx-signature"] = []string{common.HexEncodeToString(hmac)}
 
-	resp, statusCode, err := common.SendHTTPRequest2(method, bitfinexAPI2URL+path, headers, bytes.NewReader(payloadJSON))
+	resp, statusCode, err := common.SendHTTPRequest2(method, bitfinexAPI2URL+path, headers, strings.NewReader(string(payloadJSON)))
 	if err != nil {
 		return 0, err
 	}
