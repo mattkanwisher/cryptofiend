@@ -45,7 +45,7 @@ func (b *Bitfinex) Run() {
 			b.currencyPairs[pair.CurrencyItem(symbolInfo.Pair)] = &exchange.CurrencyPairInfo{Currency: currencyPair}
 			b.symbolDetails[currencyPair.Display("/", false)] = symbolInfo
 		} else {
-			log.Print("% failed to convert %s to currency pair", b.GetName(), symbolInfo.Pair)
+			log.Printf("%s failed to convert %s to currency pair", b.GetName(), symbolInfo.Pair)
 		}
 	}
 	err = b.UpdateAvailableCurrencies(exchangeProducts, false)

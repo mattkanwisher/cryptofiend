@@ -455,8 +455,14 @@ func (b *Bitfinex) newOrder(symbol string, amount float64, price float64, side s
 	request["is_hidden"] = hidden
 	request["side"] = side // this exchange uses the string buy/sell so no conversion neccessary
 
-	return response,
-		b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderNew, request, &response)
+	err := b.SendAuthenticatedHTTPRequest("POST", bitfinexOrderNew, request, &response)
+	if httpErr, ok := err.(*common.HTTPRequestError); ok {
+		msg := strings.ToLower(err.Error())
+		if (httpErr.StatusCode == 400) && strings.HasPrefix(msg, "invalid order: not enough") {
+			return response, exchange.ErrInsufficentFundsForOrder()
+		}
+	}
+	return response, err
 }
 
 // NewOrder submits a new order and returns the ID of the new exchange order
@@ -874,7 +880,7 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 	respErr := ErrorCapture{}
 	if err = common.JSONDecode([]byte(resp), &respErr); err == nil {
 		if len(respErr.Message) != 0 {
-			return errors.New(respErr.Message)
+			return &common.HTTPRequestError{statusCode, respErr.Message}
 		}
 	}
 
@@ -886,7 +892,7 @@ func (b *Bitfinex) SendAuthenticatedHTTPRequest(method, path string, params map[
 		if rateLimitErr.Message == "ERR_RATE_LIMIT" {
 			return errRateLimit
 		} else if len(rateLimitErr.Message) != 0 {
-			return errors.New(respErr.Message)
+			return &common.HTTPRequestError{statusCode, respErr.Message}
 		}
 	}
 

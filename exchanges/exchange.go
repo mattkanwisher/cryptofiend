@@ -25,11 +25,18 @@ const (
 )
 
 var warningHTTPRequestRateLimited = errors.New("HTTP request was rate limited.")
+var insufficentFundsForOrder = errors.New("insufficent funds for order")
 
 // WarningHTTPRequestRateLimited() returns an error that indicates that a method of the
 // IBotExchangeEx interface was rate limited.
 func WarningHTTPRequestRateLimited() error {
 	return warningHTTPRequestRateLimited
+}
+
+// ErrInsufficentFundsForOrder returns an error that indicates that aren't sufficient
+// funds available to place a new order on the exchange.
+func ErrInsufficentFundsForOrder() error {
+	return insufficentFundsForOrder
 }
 
 // AccountInfo is a Generic type to hold each exchange's holdings in

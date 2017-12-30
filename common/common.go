@@ -501,3 +501,12 @@ func GetURIPath(uri string) string {
 	}
 	return urip.Path
 }
+
+type HTTPRequestError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *HTTPRequestError) Error() string {
+	return e.Message
+}
